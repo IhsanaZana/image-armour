@@ -122,39 +122,71 @@ function IndicatorCard({ ind }: { ind: Indicator }) {
 
 function HiddenDataViewer({ section }: { section: HiddenSection }) {
   const [view, setView] = useState<"text" | "hex">("text");
+  const isLSB = section.type === "lsb_steganography";
+
   return (
-    <div className="rounded-xl border border-red-500/30 bg-red-500/5 overflow-hidden">
-      <div className="flex items-center gap-3 p-4 border-b border-red-500/20">
-        <ShieldAlert className="w-5 h-5 text-red-400 shrink-0" />
+    <div className={`rounded-xl border overflow-hidden ${isLSB ? "border-amber-500/40 bg-amber-500/5" : "border-red-500/30 bg-red-500/5"}`}>
+      {/* Header */}
+      <div className={`flex items-center gap-3 p-4 border-b ${isLSB ? "border-amber-500/20" : "border-red-500/20"}`}>
+        <ShieldAlert className={`w-5 h-5 shrink-0 ${isLSB ? "text-amber-400" : "text-red-400"}`} />
         <div className="flex-1">
-          <h4 className="font-bold text-red-300">{section.title}</h4>
+          <h4 className={`font-bold ${isLSB ? "text-amber-300" : "text-red-300"}`}>{section.title}</h4>
           <p className="text-xs text-[var(--color-brand-muted)] mt-0.5">
-            {section.payloadType} · {section.sizeBytes.toLocaleString()} bytes · starts at EOF {section.eofOffset}
+            {section.payloadType} · {section.sizeBytes.toLocaleString()} bytes
+            {section.eofOffset !== "N/A (pixel-level)" && ` · starts at EOF ${section.eofOffset}`}
           </p>
         </div>
       </div>
 
-      <div className="p-4 flex flex-col gap-3">
-        <div className="rounded-lg bg-red-900/20 p-3 border border-red-500/10">
-          <p className="text-xs font-bold text-red-300 uppercase mb-1">⚠️ What was found hidden inside:</p>
+      <div className="p-4 flex flex-col gap-4">
+
+        {/* ── LSB: show a prominent decoded message panel ── */}
+        {isLSB && section.textPreview && (
+          <div className="rounded-xl border border-amber-500/30 bg-black/30 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-500/20 bg-amber-500/10">
+              <Eye className="w-4 h-4 text-amber-400" />
+              <p className="text-xs font-bold text-amber-300 uppercase tracking-wider">Decoded Hidden Message</p>
+            </div>
+            <div className="p-5">
+              <p className="text-lg font-semibold text-white leading-relaxed break-words">
+                &ldquo;{section.textPreview}&rdquo;
+              </p>
+              <p className="text-xs text-[var(--color-brand-muted)] mt-3">
+                {section.sizeBytes} character{section.sizeBytes !== 1 ? "s" : ""} extracted from pixel LSBs · no passphrase used
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* What was found */}
+        <div className={`rounded-lg p-3 border ${isLSB ? "bg-amber-900/10 border-amber-500/10" : "bg-red-900/20 border-red-500/10"}`}>
+          <p className={`text-xs font-bold uppercase mb-1 ${isLSB ? "text-amber-300" : "text-red-300"}`}>⚠️ What was found hidden inside:</p>
           <p className="text-xs text-slate-300 leading-relaxed">{section.payloadType}</p>
         </div>
 
+        {/* Text / Hex toggle (always shown for appended data; shown as "raw bytes" for LSB) */}
         <div>
-          <div className="flex gap-2 mb-2">
-            <button
-              onClick={() => setView("text")}
-              className={`px-3 py-1 text-xs rounded font-medium transition-colors ${view === "text" ? "bg-[var(--color-brand-primary)] text-white" : "bg-white/5 text-[var(--color-brand-muted)] hover:bg-white/10"}`}
-            >Text View</button>
-            <button
-              onClick={() => setView("hex")}
-              className={`px-3 py-1 text-xs rounded font-medium transition-colors ${view === "hex" ? "bg-[var(--color-brand-primary)] text-white" : "bg-white/5 text-[var(--color-brand-muted)] hover:bg-white/10"}`}
-            >Hex View</button>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-[var(--color-brand-muted)] font-medium">
+              {isLSB ? "Raw extracted bytes" : "Payload preview"}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setView("text")}
+                className={`px-3 py-1 text-xs rounded font-medium transition-colors ${view === "text" ? "bg-[var(--color-brand-primary)] text-white" : "bg-white/5 text-[var(--color-brand-muted)] hover:bg-white/10"}`}
+              >Text</button>
+              <button
+                onClick={() => setView("hex")}
+                className={`px-3 py-1 text-xs rounded font-medium transition-colors ${view === "hex" ? "bg-[var(--color-brand-primary)] text-white" : "bg-white/5 text-[var(--color-brand-muted)] hover:bg-white/10"}`}
+              >Hex</button>
+            </div>
           </div>
-          <pre className="bg-black/50 rounded-lg p-3 text-xs font-mono text-red-200 overflow-x-auto whitespace-pre-wrap break-all max-h-48 border border-red-500/10 leading-relaxed">
+          <pre className={`rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all max-h-48 leading-relaxed border
+            ${isLSB ? "bg-black/50 text-amber-200 border-amber-500/10" : "bg-black/50 text-red-200 border-red-500/10"}`}>
             {view === "text" ? (section.textPreview || "(Binary data — no readable text)") : section.hexDump}
           </pre>
         </div>
+
       </div>
     </div>
   );

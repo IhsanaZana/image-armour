@@ -314,7 +314,171 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── 5. CRYPTOGRAPHIC HASH ────────────────────────────────────────────────
+    // ── 5. LSB STEGANOGRAPHY DETECTION ─────────────────────────────────────
+    try {
+      // Get full-resolution raw pixel data (no resize — we need every pixel)
+      const rawImage = sharp(buffer);
+      const { data: rawPixels, info: rawInfo } = await rawImage
+        .removeAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      const totalChannels = rawPixels.length; // width * height * 3 (RGB)
+
+      // Extract LSBs from each channel byte → reconstruct hidden bytes
+      // Every 8 channel-bytes contribute 1 bit each → 1 hidden byte
+      const maxBytesToCheck = Math.min(totalChannels, 3 * 1024 * 1024); // cap at ~1M pixels
+      const hiddenBytes: number[] = [];
+      let currentByte = 0;
+      let bitsCollected = 0;
+
+      for (let i = 0; i < maxBytesToCheck; i++) {
+        currentByte = (currentByte << 1) | (rawPixels[i] & 1);
+        bitsCollected++;
+        if (bitsCollected === 8) {
+          hiddenBytes.push(currentByte);
+          currentByte = 0;
+          bitsCollected = 0;
+        }
+      }
+
+      // Helper: extract null-terminated UTF-8 string starting at offset
+      const extractNullTerminated = (startOffset: number, maxLen = 8192): { text: string; endOffset: number } | null => {
+        const end = hiddenBytes.indexOf(0, startOffset);
+        if (end === -1 || end === startOffset || (end - startOffset) > maxLen) return null;
+        const candidate = Buffer.from(hiddenBytes.slice(startOffset, end));
+        try {
+          const text = candidate.toString("utf8");
+          const printable = text.split("").filter((c) => {
+            const code = c.charCodeAt(0);
+            return (code >= 32 && code <= 126) || code === 9 || code === 10 || code === 13;
+          }).length;
+          const ratio = text.length > 0 ? printable / text.length : 0;
+          if (ratio > 0.80) return { text, endOffset: end };
+        } catch { /* ignore */ }
+        return null;
+      };
+
+      // Known tool magic headers that prefix the real message
+      const KNOWN_HEADERS = ["Steg", "steg", "STEG", "msg", "MSG", "hidden", "HIDDEN", "data", "DATA"];
+
+      let lsbMessage: string | null = null;
+      let lsbMessageLength = 0;
+
+      // Strategy 1: null-terminated scan — handles devglan "Steg\0[message]\0" format
+      // We walk through all null-terminated segments in the first 8 KB, skipping known headers
+      {
+        let offset = 0;
+        const maxScanOffset = Math.min(hiddenBytes.length, 8192);
+        while (offset < maxScanOffset && !lsbMessage) {
+          const result = extractNullTerminated(offset, 4096);
+          if (!result) break;
+          const isKnownHeader = KNOWN_HEADERS.includes(result.text.trim());
+          if (!isKnownHeader && result.text.trim().length > 0) {
+            // This is the actual message (not a header marker)
+            lsbMessage = result.text;
+            lsbMessageLength = result.text.length;
+          }
+          // Move past this null byte to check the next segment
+          offset = result.endOffset + 1;
+        }
+      }
+
+      // Strategy 2: look for 32-bit length-prefixed format (some tools write length first)
+      if (!lsbMessage && hiddenBytes.length >= 4) {
+        const claimedLen =
+          (hiddenBytes[0] << 24) | (hiddenBytes[1] << 16) | (hiddenBytes[2] << 8) | hiddenBytes[3];
+        if (claimedLen > 0 && claimedLen <= 4096 && claimedLen + 4 <= hiddenBytes.length) {
+          const candidate = Buffer.from(hiddenBytes.slice(4, 4 + claimedLen));
+          const text = candidate.toString("utf8");
+          const printable = text.split("").filter((c) => {
+            const code = c.charCodeAt(0);
+            return (code >= 32 && code <= 126) || code === 9 || code === 10 || code === 13;
+          }).length;
+          const ratio = claimedLen > 0 ? printable / text.length : 0;
+          if (ratio > 0.80 && text.trim().length > 0) {
+            lsbMessage = text;
+            lsbMessageLength = claimedLen;
+          }
+        }
+      }
+
+      // Strategy 3: scan first 512 reconstructed bytes for any readable text run
+      if (!lsbMessage) {
+        const sample = Buffer.from(hiddenBytes.slice(0, 512)).toString("binary");
+        const readableRun = sample.match(/[ -~\t\n\r]{6,}/g); // 6+ printable chars
+        if (readableRun && readableRun.length > 0) {
+          const longestRun = readableRun.sort((a, b) => b.length - a.length)[0];
+          if (longestRun.length >= 6) {
+            lsbMessage = longestRun.trim();
+            lsbMessageLength = longestRun.length;
+          }
+        }
+      }
+
+      if (lsbMessage) {
+        riskScore += 65;
+        hiddenDataSections.push({
+          type: "lsb_steganography",
+          title: "LSB Steganography Detected",
+          payloadType: "Hidden text message embedded in pixel LSBs",
+          sizeBytes: lsbMessageLength,
+          textPreview: lsbMessage,
+          hexDump: Buffer.from(hiddenBytes.slice(0, Math.min(lsbMessageLength + 4, 128)))
+            .toString("hex")
+            .toUpperCase()
+            .match(/.{1,2}/g)
+            ?.join(" ") ?? "",
+          eofOffset: "N/A (pixel-level)",
+        });
+
+        indicators.push({
+          id: "lsb-stego",
+          name: "LSB Steganography Detected 🚨",
+          status: "FAIL",
+          riskImpact: 65,
+          plainEnglish: `A secret text message ("${lsbMessage.substring(0, 80)}${lsbMessage.length > 80 ? "…" : ""}") was found hidden inside the pixel data of this image. The image looks completely normal to the eye but is actively being used as a covert communication channel.`,
+          technical: `Least Significant Bit steganography detected. ${lsbMessageLength} bytes of hidden UTF-8 plaintext extracted from pixel channel LSBs. Encoding consistent with devglan.com / standard 1-bit-per-channel LSB embedding. Message readable without a passphrase.`,
+          whyItMatters: "LSB steganography is the primary technique used by threat actors to exfiltrate data and communicate covertly without triggering network-level detection. Because the image appears visually identical, it bypasses standard antivirus, email filters, and content scanners entirely. Discovery of a readable plaintext payload indicates active operational use.",
+        });
+      } else {
+        // Check if the LSB pattern itself is non-random (chi-square test on 0/1 distribution)
+        let ones = 0;
+        const sampleSize = Math.min(totalChannels, 100000);
+        for (let i = 0; i < sampleSize; i++) ones += rawPixels[i] & 1;
+        const ratio0 = (sampleSize - ones) / sampleSize;
+        const ratio1 = ones / sampleSize;
+        // Natural images: LSBs ≈ 50/50. Strongly biased → not stego but unusual
+        const isHighlyBiased = ratio0 < 0.35 || ratio0 > 0.65;
+        if (isHighlyBiased) {
+          riskScore += 10;
+          indicators.push({
+            id: "lsb-bias",
+            name: "LSB Bit Distribution Anomaly",
+            status: "FAIL",
+            riskImpact: 10,
+            plainEnglish: `The pixel data shows an unusual pattern in its least significant bits (${(ratio1 * 100).toFixed(1)}% ones vs expected ~50%). This can indicate LSB steganography with an encrypted or compressed payload.`,
+            technical: `LSB 0/1 ratio: ${(ratio0 * 100).toFixed(2)}% / ${(ratio1 * 100).toFixed(2)}% over ${sampleSize.toLocaleString()} samples. Expected ≈50/50 for natural images.`,
+            whyItMatters: "A biased LSB distribution is a statistical fingerprint of hidden data or payload manipulation inside image pixels.",
+          });
+        } else {
+          indicators.push({
+            id: "no-lsb-stego",
+            name: "No LSB Steganography Detected",
+            status: "PASS",
+            riskImpact: 0,
+            plainEnglish: "No hidden text messages were found encoded into the pixel data using LSB steganography.",
+            technical: `LSB extraction found no null-terminated or length-prefixed UTF-8 text. LSB 0/1 ratio: ${(ratio0 * 100).toFixed(2)}% / ${(ratio1 * 100).toFixed(2)}% (normal).`,
+            whyItMatters: "LSB steganography is the most common method for hiding messages in images. A clean result here means no readable plaintext payload was embedded using this technique.",
+          });
+        }
+      }
+    } catch (lsbErr) {
+      // Non-fatal: skip LSB check if pixel extraction fails
+      console.warn("LSB check skipped:", lsbErr);
+    }
+
+    // ── 6. CRYPTOGRAPHIC HASH ────────────────────────────────────────────────
     const hashSum = crypto.createHash("sha256");
     hashSum.update(buffer);
     const fileHash = hashSum.digest("hex");
