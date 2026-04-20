@@ -6,215 +6,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   CloudUpload, AlertCircle, CheckCircle2, ShieldAlert,
   Code2, Download, FileText, Info, ShieldCheck,
-  ChevronDown, ChevronUp, Eye, Lock, Cpu, Database,
+  ChevronDown, ChevronUp, Eye, Lock, Cpu, Database, Printer
 } from "lucide-react";
 
-type Indicator = {
-  id: string;
-  name: string;
-  status: "PASS" | "FAIL" | "INFO";
-  riskImpact: number;
-  plainEnglish: string;
-  technical: string;
-  whyItMatters: string;
-};
-
-type HiddenSection = {
-  type: string;
-  title: string;
-  payloadType: string;
-  sizeBytes: number;
-  textPreview: string;
-  hexDump: string;
-  eofOffset: string;
-};
-
-type ReportData = {
-  success: boolean;
-  scanId: string;
-  date: string;
-  riskScore: number;
-  classification: "SAFE" | "SUSPICIOUS" | "UNSAFE";
-  classificationReason: string;
-  indicators: Indicator[];
-  hiddenDataSections: HiddenSection[];
-  exifDetails: Record<string, string>;
-  technicalData: {
-    fileHash: string;
-    pixelEntropy: string;
-    softwareTag: string;
-    dimensions: string;
-    mimeType: string;
-    magicBytes: string;
-    size: number;
-    filename: string;
-  };
-};
-
-// ── Sub-Components ────────────────────────────────────────────────────────────
-
-function StatusBadge({ status, impact }: { status: string; impact: number }) {
-  if (status === "PASS") return (
-    <span className="text-xs font-bold px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">PASS</span>
-  );
-  if (status === "INFO") return (
-    <span className="text-xs font-bold px-2 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">INFO</span>
-  );
-  return (
-    <span className="text-xs font-bold px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20">
-      +{impact} RISK
-    </span>
-  );
-}
-
-function StatusIcon({ status }: { status: string }) {
-  if (status === "PASS") return <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />;
-  if (status === "INFO") return <Info className="w-5 h-5 text-indigo-400 shrink-0" />;
-  return <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />;
-}
-
-function IndicatorCard({ ind }: { ind: Indicator }) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <div className={`rounded-xl border transition-all duration-200 overflow-hidden
-      ${ind.status === "FAIL" ? "border-red-500/20 bg-red-500/5" :
-        ind.status === "PASS" ? "border-emerald-500/15 bg-emerald-500/5" :
-        "border-indigo-500/15 bg-indigo-500/5"}`}
-    >
-      <div className="flex items-start gap-3 p-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-        <StatusIcon status={ind.status} />
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start gap-2 mb-1 flex-wrap">
-            <h4 className="font-semibold text-sm">{ind.name}</h4>
-            <StatusBadge status={ind.status} impact={ind.riskImpact} />
-          </div>
-          <p className="text-sm text-[var(--color-brand-muted)]">{ind.plainEnglish}</p>
-        </div>
-        <button className="text-[var(--color-brand-muted)] shrink-0 mt-0.5">
-          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="border-t border-white/5 mx-4 pt-4 pb-4 flex flex-col gap-3">
-              <div className="rounded-lg bg-black/30 p-3">
-                <p className="text-xs font-bold text-[var(--color-brand-muted)] uppercase tracking-wider mb-1">Technical Detail</p>
-                <p className="text-xs font-mono text-slate-300">{ind.technical}</p>
-              </div>
-              <div className="rounded-lg bg-amber-500/5 border border-amber-500/10 p-3">
-                <p className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">💡 Why This Matters</p>
-                <p className="text-xs text-slate-300 leading-relaxed">{ind.whyItMatters}</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function HiddenDataViewer({ section }: { section: HiddenSection }) {
-  const [view, setView] = useState<"text" | "hex">("text");
-  const isLSB = section.type === "lsb_steganography";
-
-  return (
-    <div className={`rounded-xl border overflow-hidden ${isLSB ? "border-amber-500/40 bg-amber-500/5" : "border-red-500/30 bg-red-500/5"}`}>
-      {/* Header */}
-      <div className={`flex items-center gap-3 p-4 border-b ${isLSB ? "border-amber-500/20" : "border-red-500/20"}`}>
-        <ShieldAlert className={`w-5 h-5 shrink-0 ${isLSB ? "text-amber-400" : "text-red-400"}`} />
-        <div className="flex-1">
-          <h4 className={`font-bold ${isLSB ? "text-amber-300" : "text-red-300"}`}>{section.title}</h4>
-          <p className="text-xs text-[var(--color-brand-muted)] mt-0.5">
-            {section.payloadType} · {section.sizeBytes.toLocaleString()} bytes
-            {section.eofOffset !== "N/A (pixel-level)" && ` · starts at EOF ${section.eofOffset}`}
-          </p>
-        </div>
-      </div>
-
-      <div className="p-4 flex flex-col gap-4">
-
-        {/* ── LSB: show a prominent decoded message panel ── */}
-        {isLSB && section.textPreview && (
-          <div className="rounded-xl border border-amber-500/30 bg-black/30 overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-amber-500/20 bg-amber-500/10">
-              <Eye className="w-4 h-4 text-amber-400" />
-              <p className="text-xs font-bold text-amber-300 uppercase tracking-wider">Decoded Hidden Message</p>
-            </div>
-            <div className="p-5">
-              <p className="text-lg font-semibold text-white leading-relaxed break-words">
-                &ldquo;{section.textPreview}&rdquo;
-              </p>
-              <p className="text-xs text-[var(--color-brand-muted)] mt-3">
-                {section.sizeBytes} character{section.sizeBytes !== 1 ? "s" : ""} extracted from pixel LSBs · no passphrase used
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* What was found */}
-        <div className={`rounded-lg p-3 border ${isLSB ? "bg-amber-900/10 border-amber-500/10" : "bg-red-900/20 border-red-500/10"}`}>
-          <p className={`text-xs font-bold uppercase mb-1 ${isLSB ? "text-amber-300" : "text-red-300"}`}>⚠️ What was found hidden inside:</p>
-          <p className="text-xs text-slate-300 leading-relaxed">{section.payloadType}</p>
-        </div>
-
-        {/* Text / Hex toggle (always shown for appended data; shown as "raw bytes" for LSB) */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-[var(--color-brand-muted)] font-medium">
-              {isLSB ? "Raw extracted bytes" : "Payload preview"}
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setView("text")}
-                className={`px-3 py-1 text-xs rounded font-medium transition-colors ${view === "text" ? "bg-[var(--color-brand-primary)] text-white" : "bg-white/5 text-[var(--color-brand-muted)] hover:bg-white/10"}`}
-              >Text</button>
-              <button
-                onClick={() => setView("hex")}
-                className={`px-3 py-1 text-xs rounded font-medium transition-colors ${view === "hex" ? "bg-[var(--color-brand-primary)] text-white" : "bg-white/5 text-[var(--color-brand-muted)] hover:bg-white/10"}`}
-              >Hex</button>
-            </div>
-          </div>
-          <pre className={`rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap break-all max-h-48 leading-relaxed border
-            ${isLSB ? "bg-black/50 text-amber-200 border-amber-500/10" : "bg-black/50 text-red-200 border-red-500/10"}`}>
-            {view === "text" ? (section.textPreview || "(Binary data — no readable text)") : section.hexDump}
-          </pre>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
-function ScoreRing({ score }: { score: number }) {
-  const color = score < 10 ? "#10b981" : score < 40 ? "#f59e0b" : "#ef4444";
-  const dash = 283;
-  const offset = dash - (dash * Math.min(score, 100)) / 100;
-  return (
-    <div className="relative w-40 h-40 flex items-center justify-center">
-      <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="45" fill="none" stroke="#1e293b" strokeWidth="8" />
-        <circle
-          cx="50" cy="50" r="45" fill="none"
-          stroke={color} strokeWidth="8"
-          strokeDasharray={dash} strokeDashoffset={offset}
-          strokeLinecap="round"
-          style={{ transition: "stroke-dashoffset 1s ease, stroke 0.5s ease" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-4xl font-bold">{score}</span>
-        <span className="text-[10px] text-[var(--color-brand-muted)] font-semibold tracking-widest mt-0.5">RISK SCORE</span>
-      </div>
-    </div>
-  );
-}
+import { IndicatorCard } from "@/components/IndicatorCard";
+import { HiddenDataViewer } from "@/components/HiddenDataViewer";
+import { ScoreRing } from "@/components/ScoreRing";
+import { ReportData } from "@/types";
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -247,6 +45,8 @@ export default function Home() {
     }
   }, []);
 
+  const [activeTile, setActiveTile] = useState<string | null>(null);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] },
@@ -261,137 +61,204 @@ export default function Home() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center pt-12 pb-24">
+    <div className="flex-1 flex flex-col items-center pt-0 pb-24 px-4 md:px-8 relative z-10 selection:bg-indigo-500/30">
       <AnimatePresence mode="wait">
-
-        {/* ── HERO ── */}
         {!report && !isAnalyzing && (
           <motion.div key="hero" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col items-center w-full max-w-3xl text-center"
+            className="flex flex-col items-center w-full text-center"
           >
-            <div className="px-4 py-1.5 mb-6 text-xs font-semibold rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              Rule-Based Forensic Analysis
-            </div>
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4">
-              Is Your Image Safe?<br />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
-                Verify Before You Trust.
-              </span>
-            </h1>
-            <p className="text-[var(--color-brand-muted)] mb-14 text-lg max-w-xl leading-relaxed">
-              Detect hidden threats, metadata anomalies, and structural modifications. Transparent, rule-based and instant.
-            </p>
+            <div className="flex flex-col items-center w-full max-w-6xl px-4 md:px-0">
+              <p className="mb-8 text-xs font-medium tracking-[0.4em] uppercase text-indigo-400/60">
+                Rule-Based Forensic Analysis Engine
+              </p>
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-light tracking-tight mb-8 leading-tight text-white/90">
+                Is Your Image Safe? <span className="text-indigo-400/80 font-normal">Verify Before You Trust.</span>
+              </h1>
+              <p className="text-slate-400 mb-12 text-base md:text-lg max-w-3xl leading-relaxed font-light px-4">
+                Analyze file signatures, pixel entropy, and EXIF metadata to detect appended payloads and simple LSB steganography.
+              </p>
 
-            {error && (
-              <div className="mb-8 p-4 w-full max-w-xl bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 flex items-center gap-3 text-sm">
-                <ShieldAlert className="w-5 h-5 shrink-0" />
-                <p>{error}</p>
-              </div>
-            )}
-
-            <div
-              {...getRootProps()}
-              className={`w-full max-w-xl p-14 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-200 flex flex-col items-center bg-[var(--color-brand-card)]
-                ${isDragActive ? "border-indigo-500 bg-indigo-500/5 scale-[1.01]" : "border-[var(--color-brand-border)] hover:border-indigo-500/40"}`}
-            >
-              <input {...getInputProps()} />
-              <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center mb-5">
-                <CloudUpload className="w-8 h-8 text-indigo-400" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Drag & Drop your image here</h3>
-              <p className="text-[var(--color-brand-muted)] text-sm mb-6">Supports JPG, PNG, WEBP · Max size 10MB</p>
-              <button className="px-7 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-500 transition-colors text-sm">
-                Browse Files
-              </button>
-            </div>
-
-            {/* Feature pills */}
-            <div className="flex flex-wrap justify-center gap-3 mt-10">
-              {[
-                { icon: <Lock className="w-3.5 h-3.5" />, label: "MIME Validation" },
-                { icon: <Eye className="w-3.5 h-3.5" />, label: "Hidden Payload Detection" },
-                { icon: <Database className="w-3.5 h-3.5" />, label: "EXIF & GPS Inspection" },
-                { icon: <Cpu className="w-3.5 h-3.5" />, label: "Entropy Analysis" },
-                { icon: <Code2 className="w-3.5 h-3.5" />, label: "SHA-256 Hash" },
-              ].map((f) => (
-                <div key={f.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-[var(--color-brand-muted)]">
-                  {f.icon} {f.label}
+              {error && (
+                <div className="mb-10 p-8 w-full max-w-xl glass border-red-500/20 rounded-[2rem] text-red-400 flex items-center gap-6 text-sm font-light shadow-2xl">
+                  <ShieldAlert className="w-8 h-8 shrink-0 text-red-500/50" />
+                  <p className="text-left leading-relaxed">{error}</p>
                 </div>
-              ))}
+              )}
+
+              <div
+                {...getRootProps()}
+                className={`dropzone-area w-full max-w-4xl p-10 md:p-24 border border-dashed rounded-[3rem] cursor-pointer transition-all duration-700 flex flex-col items-center glass hover:shadow-[0_0_80px_rgba(99,102,241,0.15)] hover:border-white/20 hover:scale-[1.01]
+                  ${isDragActive ? "border-indigo-500/50 bg-indigo-500/5 scale-[1.02] shadow-[0_0_100px_rgba(99,102,241,0.2)]" : "border-white/5"}`}
+              >
+                <input {...getInputProps()} />
+                <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-10 border border-white/5 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                  <CloudUpload className="w-10 h-10 text-white/40 group-hover:text-indigo-400 transition-colors" />
+                </div>
+                <h3 className="text-xl md:text-2xl font-light mb-4 text-white/90">Drag & Drop your image here</h3>
+                <p className="text-slate-500 text-sm md:text-base mb-12 font-light">Supports JPG, PNG, WEBP · Max size 10MB</p>
+                <button className="px-12 py-4 bg-white text-black rounded-full font-medium hover:bg-slate-200 transition-all shadow-xl active:scale-95 text-base">
+                  Browse Files
+                </button>
+              </div>
+            </div>
+
+            {/* Professional Feature Section - Redesigned for Clarity & Luxury */}
+            <div className="w-full mt-40 border-t border-white/[0.03] pt-32 pb-24 px-6 md:px-12">
+              <div className="max-w-7xl mx-auto">
+                <div className="text-center mb-20">
+                  <h2 className="text-sm font-bold tracking-[0.5em] uppercase text-indigo-500/60 mb-4">Core Capabilities</h2>
+                  <p className="text-3xl font-light text-white/90 tracking-tight">Sophisticated Detection Suite</p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
+                  {[
+                    { 
+                      id: "mime",
+                      icon: <Lock className="w-8 h-8 text-indigo-400" />, 
+                      label: "MIME Validation", 
+                      desc: "Binary Analysis",
+                      hoverText: "Verifying binary signatures to prevent malicious script execution disguised as standard image formats."
+                    },
+                    { 
+                      id: "payload",
+                      icon: <Eye className="w-8 h-8 text-purple-400" />, 
+                      label: "Hidden Payloads", 
+                      desc: "EOF Steganography",
+                      hoverText: "Isolating anomalies beyond the image data stream to detect embedded malicious payloads."
+                    },
+                    { 
+                      id: "exif",
+                      icon: <Database className="w-8 h-8 text-pink-400" />, 
+                      label: "EXIF & GPS", 
+                      desc: "Privacy Audit",
+                      hoverText: "Deep-layer metadata inspection to reveal hidden geolocation and device identification data."
+                    },
+                    { 
+                      id: "entropy",
+                      icon: <Cpu className="w-8 h-8 text-blue-400" />, 
+                      label: "Entropy Scan", 
+                      desc: "Math Profiling",
+                      hoverText: "Statistical randomness analysis to identify encrypted channels smuggled within pixel structures."
+                    },
+                    { 
+                      id: "hash",
+                      icon: <Code2 className="w-8 h-8 text-emerald-400" />, 
+                      label: "SHA-256 Hash", 
+                      desc: "Cryptographic ID",
+                      hoverText: "Generating unique binary fingerprints to instantly verify file integrity against global threat intelligence."
+                    },
+                  ].map((f) => (
+                    <div 
+                      key={f.id} 
+                      onMouseEnter={() => setActiveTile(f.id)}
+                      onMouseLeave={() => setActiveTile(null)}
+                      className={`relative group h-80 rounded-[2.5rem] transition-all duration-700 cursor-default border border-white/[0.05] flex flex-col items-center justify-center p-8 overflow-hidden
+                        ${activeTile === f.id ? "bg-white/[0.04] border-white/10 -translate-y-3 shadow-[0_30px_60px_rgba(0,0,0,0.5)]" : "bg-white/[0.01] hover:bg-white/[0.02] translate-y-0"}`}
+                    >
+                      {/* Premium Glass Reflection */}
+                      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                      
+                      {/* Gradient Ambient Light */}
+                      <div className={`absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700`} />
+                      
+                      {/* Default View */}
+                      <div className={`flex flex-col items-center transition-all duration-700 ${activeTile === f.id ? "opacity-0 -translate-y-4 scale-90 blur-lg" : "opacity-100 translate-y-0 scale-100"}`}>
+                        <div className="mb-8 p-6 rounded-3xl bg-white/[0.02] border border-white/[0.05] shadow-inner group-hover:scale-110 group-hover:bg-white/[0.04] transition-all duration-500">
+                          {f.icon}
+                        </div>
+                        <h4 className="text-lg font-medium text-white/90 tracking-tight">{f.label}</h4>
+                        <p className="text-[9px] text-slate-500 mt-3 font-bold tracking-[0.2em] uppercase">{f.desc}</p>
+                      </div>
+
+                      {/* Hover Description - Professional Overlay */}
+                      <div className={`absolute inset-0 p-10 flex flex-col items-center justify-center text-center transition-all duration-700 ${activeTile === f.id ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 pointer-events-none"}`}>
+                        <h4 className="text-base font-medium text-white mb-4">{f.label}</h4>
+                        <p className="text-xs text-slate-400 leading-relaxed font-light">
+                          {f.hoverText}
+                        </p>
+                        <div className="mt-8 w-6 h-[1px] bg-indigo-500/30" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
 
         {/* ── ANALYZING ── */}
         {isAnalyzing && (
-          <motion.div key="analyzing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center w-full py-36"
+          <motion.div key="analyzing" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}
+            className="flex flex-col items-center justify-center w-full py-40"
           >
-            <div className="relative w-24 h-24 mb-8">
-              <div className="absolute inset-0 border-4 border-[var(--color-brand-border)] rounded-full" />
-              <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin" />
-              <ShieldCheck className="absolute inset-0 m-auto w-9 h-9 text-indigo-400 animate-pulse" />
+            <div className="relative w-28 h-28 mb-10">
+              <div className="absolute inset-0 border-4 border-white/5 rounded-full" />
+              <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin shadow-[0_0_15px_rgba(99,102,241,0.5)]" />
+              <ShieldCheck className="absolute inset-0 m-auto w-12 h-12 text-indigo-400 animate-pulse" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Running Forensic Analysis…</h2>
-            <p className="text-[var(--color-brand-muted)] text-sm">Inspecting file headers, metadata, hidden data, and pixel entropy</p>
+            <h2 className="text-3xl font-extrabold mb-3 text-white">Running Forensic Analysis…</h2>
+            <p className="text-[var(--color-brand-muted)] text-base">Deep-scanning pixel data, headers, and metadata</p>
           </motion.div>
         )}
 
         {/* ── REPORT ── */}
         {report && (
-          <motion.div key="report" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full flex flex-col">
+          <motion.div key="report" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-6xl flex flex-col">
 
             {/* Header */}
-            <div className="flex items-center justify-between mb-8 pb-6 border-b border-[var(--color-brand-border)]">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-[var(--color-brand-border)] gap-4">
               <div>
-                <h1 className="text-3xl font-bold mb-1">Analysis Report</h1>
-                <p className="text-[var(--color-brand-muted)] text-sm flex items-center gap-2">
+                <h1 className="text-3xl md:text-4xl font-extrabold mb-2 text-white">Analysis Report</h1>
+                <p className="text-[var(--color-brand-muted)] text-sm flex items-center gap-2 font-medium">
                   Scan ID: <span className="font-mono text-indigo-400">#{report.scanId}</span>
-                  <span className="w-1 h-1 rounded-full bg-[var(--color-brand-border)] inline-block" />
-                  {new Date(report.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-brand-border)] inline-block" />
+                  {new Date(report.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </p>
               </div>
               <button
                 onClick={() => { setReport(null); setPreviewUrl(null); }}
-                className="px-4 py-2 border border-[var(--color-brand-border)] rounded-xl hover:bg-[var(--color-brand-card)] transition-colors text-sm"
+                className="no-print px-5 py-2.5 glass rounded-xl hover:bg-white/10 transition-colors text-sm font-bold text-white shrink-0"
               >
-                Scan Another
+                Scan Another Image
               </button>
             </div>
 
             {/* Top grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 print-avoid-break">
 
               {/* Score + Verdict */}
-              <div className="bg-[var(--color-brand-card)] border border-[var(--color-brand-border)] rounded-2xl p-6 flex flex-col items-center">
+              <div className="glass rounded-3xl p-8 flex flex-col items-center justify-center relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 pointer-events-none" />
                 <ScoreRing score={report.riskScore} />
-                <div className={`mt-5 px-5 py-2 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 border ${classColors[report.classification].bg} ${classColors[report.classification].text} ${classColors[report.classification].border}`}>
-                  {report.classification === "SAFE" && <CheckCircle2 className="w-4 h-4" />}
-                  {report.classification === "SUSPICIOUS" && <AlertCircle className="w-4 h-4" />}
-                  {report.classification === "UNSAFE" && <ShieldAlert className="w-4 h-4" />}
+                <div className={`mt-6 px-6 py-2.5 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 border shadow-lg ${classColors[report.classification].bg} ${classColors[report.classification].text} ${classColors[report.classification].border}`}>
+                  {report.classification === "SAFE" && <CheckCircle2 className="w-5 h-5" />}
+                  {report.classification === "SUSPICIOUS" && <AlertCircle className="w-5 h-5" />}
+                  {report.classification === "UNSAFE" && <ShieldAlert className="w-5 h-5" />}
                   {report.classification}
                 </div>
-                <p className="text-center text-sm text-[var(--color-brand-muted)] mt-4 leading-relaxed">{report.classificationReason}</p>
+                <p className="text-center text-sm text-slate-300 mt-5 leading-relaxed font-medium">{report.classificationReason}</p>
               </div>
 
               {/* Image Preview + File Info */}
-              <div className="bg-[var(--color-brand-card)] border border-[var(--color-brand-border)] rounded-2xl p-5 flex flex-col gap-4">
-                <p className="text-xs font-bold text-[var(--color-brand-muted)] uppercase tracking-wider">Analyzed File</p>
+              <div className="glass rounded-3xl p-6 flex flex-col gap-5">
+                <p className="text-xs font-bold text-indigo-300 uppercase tracking-widest flex items-center gap-2">
+                  <Eye className="w-4 h-4" /> Analyzed File
+                </p>
                 {previewUrl && (
-                  <div className="w-full aspect-video bg-black rounded-xl overflow-hidden">
+                  <div className="w-full aspect-video bg-black/40 rounded-2xl overflow-hidden border border-white/5 shadow-inner">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={previewUrl} alt="Analyzed" className="w-full h-full object-contain" />
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-2 gap-3 text-xs">
                   {[
                     ["Filename", report.technicalData.filename],
                     ["Size", (report.technicalData.size / 1024).toFixed(1) + " KB"],
                     ["Dimensions", report.technicalData.dimensions],
                     ["MIME Type", report.technicalData.mimeType],
                   ].map(([k, v]) => (
-                    <div key={k} className="bg-black/20 rounded-lg p-2">
-                      <p className="text-[var(--color-brand-muted)] mb-0.5">{k}</p>
+                    <div key={k} className="bg-black/30 rounded-xl p-3 border border-white/5">
+                      <p className="text-[var(--color-brand-muted)] mb-1 font-medium">{k}</p>
                       <p className="font-mono text-white truncate" title={v}>{v}</p>
                     </div>
                   ))}
@@ -399,19 +266,19 @@ export default function Home() {
               </div>
 
               {/* Technical Data */}
-              <div className="bg-[var(--color-brand-card)] border border-[var(--color-brand-border)] rounded-2xl p-5 flex flex-col gap-3">
-                <p className="text-xs font-bold text-[var(--color-brand-muted)] uppercase tracking-wider flex items-center gap-2">
+              <div className="glass rounded-3xl p-6 flex flex-col gap-4 justify-between">
+                <p className="text-xs font-bold text-purple-300 uppercase tracking-widest flex items-center gap-2 mb-2">
                   <Code2 className="w-4 h-4" /> Technical Data
                 </p>
                 {[
-                  ["SHA-256 Hash", report.technicalData.fileHash.substring(0, 10) + "..." + report.technicalData.fileHash.slice(-6), report.technicalData.fileHash],
+                  ["SHA-256 Hash", report.technicalData.fileHash.substring(0, 12) + "..." + report.technicalData.fileHash.slice(-8), report.technicalData.fileHash],
                   ["Magic Bytes", report.technicalData.magicBytes, undefined],
                   ["Pixel Entropy", report.technicalData.pixelEntropy, undefined],
                   ["Software Tag", report.technicalData.softwareTag, undefined],
                 ].map(([k, v, title]) => (
                   <div key={k as string}>
-                    <p className="text-xs text-[var(--color-brand-muted)] mb-1">{k}</p>
-                    <p className="font-mono text-sm bg-black/30 px-3 py-2 rounded-lg border border-[var(--color-brand-border)] truncate" title={title as string | undefined}>
+                    <p className="text-xs text-[var(--color-brand-muted)] mb-1.5 font-medium">{k}</p>
+                    <p className="font-mono text-sm bg-black/40 px-4 py-2.5 rounded-xl border border-white/5 truncate text-slate-200" title={title as string | undefined}>
                       {v}
                     </p>
                   </div>
@@ -421,14 +288,14 @@ export default function Home() {
 
             {/* Hidden Data Sections */}
             {report.hiddenDataSections.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-red-400">
-                  <Eye className="w-5 h-5" /> Hidden Data Exposed
-                  <span className="text-xs bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full font-normal text-red-400">
-                    {report.hiddenDataSections.length} section{report.hiddenDataSections.length > 1 ? "s" : ""} found
+              <div className="mb-8 print-page-break">
+                <h2 className="text-xl md:text-2xl font-extrabold mb-5 flex items-center gap-3 text-red-400">
+                  <Eye className="w-6 h-6" /> Hidden Data Exposed
+                  <span className="text-xs bg-red-500/20 border border-red-500/30 px-3 py-1 rounded-full font-bold text-red-300 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                    {report.hiddenDataSections.length} anomaly{report.hiddenDataSections.length > 1 ? "s" : ""} detected
                   </span>
                 </h2>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-5">
                   {report.hiddenDataSections.map((s, i) => (
                     <HiddenDataViewer key={i} section={s} />
                   ))}
@@ -438,15 +305,14 @@ export default function Home() {
 
             {/* EXIF Details */}
             {Object.keys(report.exifDetails).length > 0 && (
-              <div className="mb-6 bg-[var(--color-brand-card)] border border-[var(--color-brand-border)] rounded-2xl p-6">
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <Database className="w-5 h-5 text-indigo-400" /> Embedded Metadata (EXIF)
-                  <span className="text-xs text-[var(--color-brand-muted)] font-normal">— Hidden inside the image file</span>
+              <div className="mb-8 glass rounded-3xl p-6 md:p-8 print-avoid-break">
+                <h2 className="text-xl md:text-2xl font-extrabold mb-6 flex items-center gap-3 text-white">
+                  <Database className="w-6 h-6 text-indigo-400" /> Embedded Metadata (EXIF)
                 </h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {Object.entries(report.exifDetails).map(([k, v]) => (
-                    <div key={k} className="bg-black/20 rounded-xl p-3 border border-white/5">
-                      <p className="text-xs text-[var(--color-brand-muted)] mb-1">{k}</p>
+                    <div key={k} className="bg-black/30 rounded-2xl p-4 border border-white/5 hover:bg-black/40 transition-colors">
+                      <p className="text-xs text-[var(--color-brand-muted)] mb-1.5 font-medium">{k}</p>
                       <p className="text-sm font-mono text-white truncate" title={v}>{v}</p>
                     </div>
                   ))}
@@ -455,12 +321,11 @@ export default function Home() {
             )}
 
             {/* Risk Indicators */}
-            <div className="mb-6 bg-[var(--color-brand-card)] border border-[var(--color-brand-border)] rounded-2xl p-6">
-              <h2 className="text-lg font-bold mb-5 flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-indigo-400" /> Risk Indicators
-                <span className="text-xs text-[var(--color-brand-muted)] font-normal">— click any item to expand</span>
+            <div className="mb-8 glass rounded-3xl p-6 md:p-8">
+              <h2 className="text-xl md:text-2xl font-extrabold mb-6 flex items-center gap-3 text-white">
+                <ShieldAlert className="w-6 h-6 text-indigo-400" /> Security Findings
               </h2>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-4">
                 {report.indicators.map((ind) => (
                   <IndicatorCard key={ind.id} ind={ind} />
                 ))}
@@ -468,12 +333,15 @@ export default function Home() {
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3">
-              <button className="px-5 py-2.5 border border-[var(--color-brand-border)] rounded-xl hover:bg-[var(--color-brand-card)] transition-colors text-sm font-medium flex items-center gap-2">
+            <div className="flex justify-end gap-4 no-print mt-4">
+              <button className="px-6 py-3 glass rounded-xl hover:bg-white/10 transition-all text-sm font-bold flex items-center gap-2 active:scale-95">
                 <FileText className="w-4 h-4" /> View Full Hex Dump
               </button>
-              <button className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 transition-colors text-sm font-semibold flex items-center gap-2">
-                <Download className="w-4 h-4" /> Download Report
+              <button 
+                onClick={() => window.print()}
+                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all text-sm font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.4)] active:scale-95"
+              >
+                <Printer className="w-4 h-4" /> Print / Save PDF
               </button>
             </div>
 
