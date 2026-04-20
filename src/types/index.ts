@@ -35,6 +35,7 @@ export type ReportData = {
     dimensions: string;
     mimeType: string;
     magicBytes: string;
+    fullHexDump: string;
     size: number;
     filename: string;
   };

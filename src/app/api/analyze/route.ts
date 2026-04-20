@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
         dimensions: analyzer.dimensions,
         mimeType: analyzer.mimeFromHeader,
         magicBytes: analyzer.magicBytesHex,
+        fullHexDump: analyzer.fullHexDump,
         size: file.size,
         filename: file.name,
       },

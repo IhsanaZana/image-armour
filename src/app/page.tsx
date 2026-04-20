@@ -5,7 +5,7 @@ import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CloudUpload, AlertCircle, CheckCircle2, ShieldAlert,
-  Code2, Download, FileText, Info, ShieldCheck,
+  Code2, Download, FileText, Info, ShieldCheck, X,
   ChevronDown, ChevronUp, Eye, Lock, Cpu, Database, Printer
 } from "lucide-react";
 
@@ -21,6 +21,8 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [report, setReport] = useState<ReportData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeTile, setActiveTile] = useState<string | null>(null);
+  const [showHexModal, setShowHexModal] = useState(false);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const selectedFile = acceptedFiles[0];
@@ -44,8 +46,6 @@ export default function Home() {
       setIsAnalyzing(false);
     }
   }, []);
-
-  const [activeTile, setActiveTile] = useState<string | null>(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -334,7 +334,10 @@ export default function Home() {
 
             {/* Actions */}
             <div className="flex justify-end gap-4 no-print mt-4">
-              <button className="px-6 py-3 glass rounded-xl hover:bg-white/10 transition-all text-sm font-bold flex items-center gap-2 active:scale-95">
+              <button 
+                onClick={() => setShowHexModal(true)}
+                className="px-6 py-3 glass rounded-xl hover:bg-white/10 transition-all text-sm font-bold flex items-center gap-2 active:scale-95"
+              >
                 <FileText className="w-4 h-4" /> View Full Hex Dump
               </button>
               <button 
@@ -346,6 +349,88 @@ export default function Home() {
             </div>
 
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Forensic Hex Dump Modal */}
+      <AnimatePresence>
+        {showHexModal && report && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowHexModal(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-xl"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-5xl max-h-[85vh] bg-slate-900 border border-white/10 rounded-[2.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-8 border-b border-white/5 bg-white/[0.02]">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-2xl bg-indigo-500/10 text-indigo-400">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Forensic Hex Dump</h3>
+                    <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-medium">Raw Binary Analysis · First 4,096 Bytes</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowHexModal(false)}
+                  className="p-3 rounded-2xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Hex Content */}
+              <div className="flex-1 overflow-auto p-8 font-mono text-[10px] md:text-xs leading-relaxed">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-4">Binary Data (HEX)</p>
+                    <div className="bg-black/40 p-6 rounded-2xl border border-white/5 text-slate-300 break-all whitespace-pre-wrap selection:bg-indigo-500 selection:text-white">
+                      {report.technicalData.fullHexDump}
+                    </div>
+                  </div>
+                  <div className="hidden md:block">
+                    <p className="text-[10px] text-purple-400 font-bold uppercase tracking-widest mb-4">Forensic Analysis Guidance</p>
+                    <div className="space-y-4">
+                      {[
+                        { t: "Magic Bytes", d: "The first few bytes define the true file type, regardless of extension." },
+                        { t: "Null Padding", d: "Large blocks of 00 often indicate uninitialized space or specific offsets." },
+                        { t: "ASCII Strings", d: "Hidden text often appears as readable characters amongst binary noise." },
+                        { t: "Entropy", d: "High visual variety in the hex patterns often indicates encryption." },
+                      ].map((item, i) => (
+                        <div key={i} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+                          <p className="text-[10px] font-bold text-white mb-1 uppercase tracking-tight">{item.t}</p>
+                          <p className="text-[11px] text-slate-500 font-light">{item.d}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-white/5 bg-black/20 flex justify-between items-center">
+                <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Source: {report.technicalData.filename}</p>
+                <div className="flex gap-4">
+                  <button 
+                    onClick={() => setShowHexModal(false)}
+                    className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-bold transition-all"
+                  >
+                    Close Viewer
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

@@ -20,6 +20,7 @@ export class ImageAnalyzer {
   
   public dimensions = "Unknown";
   public pixelEntropy = "N/A";
+  public fullHexDump = "";
   
   private buffer: Buffer;
   private fileName: string;
@@ -40,6 +41,19 @@ export class ImageAnalyzer {
     this.analyzeExif();
     await this.analyzeEntropy();
     await this.analyzeLsb();
+    this.generateFullHexDump();
+  }
+
+  /**
+   * Generates a forensic hex dump of the first 4KB of the file.
+   */
+  private generateFullHexDump() {
+    const slice = this.buffer.slice(0, 4096);
+    this.fullHexDump = slice
+      .toString("hex")
+      .toUpperCase()
+      .match(/.{1,2}/g)
+      ?.join(" ") ?? "";
   }
 
   /**
