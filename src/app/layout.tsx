@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Lexend } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 const lexend = Lexend({
   variable: "--font-lexend",
@@ -25,6 +26,7 @@ export default function RootLayout({
         <main className="flex-1 flex flex-col w-full px-4 sm:px-6 lg:px-8">
           {children}
         </main>
+        <Footer />
       </body>
     </html>
   );
