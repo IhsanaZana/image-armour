@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -23,8 +23,25 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [activeTile, setActiveTile] = useState<string | null>(null);
   const [showHexModal, setShowHexModal] = useState(false);
+  const [maxSizeMB, setMaxSizeMB] = useState(4.5);
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+  useEffect(() => {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      setMaxSizeMB(Infinity);
+    }
+  }, []);
+
+  const onDrop = useCallback(async (acceptedFiles: File[], fileRejections: any[]) => {
+    if (fileRejections.length > 0) {
+      const rejection = fileRejections[0];
+      const errorMsg = rejection.errors.map((e: any) => {
+        if (e.code === 'file-too-large') return `File is larger than ${maxSizeMB}MB limit`;
+        return e.message;
+      }).join(", ");
+      setError(`Upload failed: ${errorMsg}`);
+      return;
+    }
+
     const selectedFile = acceptedFiles[0];
     if (!selectedFile) return;
     setPreviewUrl(URL.createObjectURL(selectedFile));
@@ -37,7 +54,19 @@ export default function Home() {
 
     try {
       const res = await fetch("/api/analyze", { method: "POST", body: formData });
-      const data = await res.json();
+      
+      if (res.status === 413) {
+        throw new Error(`Image is too large. ${maxSizeMB === Infinity ? 'The server rejected the payload size.' : 'Vercel limits uploads to 4.5MB.'}`);
+      }
+      
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        throw new Error(`Server returned an invalid response (Status ${res.status}). The file might be too large or the server encountered an error.`);
+      }
+
       if (!res.ok || !data.success) throw new Error(data.error || "Analysis failed");
       setReport(data);
     } catch (err: any) {
@@ -45,12 +74,12 @@ export default function Home() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, []);
+  }, [maxSizeMB]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"], "image/webp": [".webp"] },
-    maxSize: 10 * 1024 * 1024,
+    maxSize: maxSizeMB === Infinity ? undefined : maxSizeMB * 1024 * 1024,
     multiple: false,
   });
 
@@ -67,7 +96,7 @@ export default function Home() {
           <motion.div key="hero" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
             className="flex flex-col items-center w-full text-center"
           >
-            <div className="flex flex-col items-center w-full max-w-6xl px-4 md:px-0">
+            <div className="flex flex-col items-center w-full px-4 md:px-0">
               <p className="mb-8 text-xs font-medium tracking-[0.4em] uppercase text-indigo-400/60">
                 Rule-Based Forensic Analysis Engine
               </p>
@@ -95,7 +124,9 @@ export default function Home() {
                   <CloudUpload className="w-10 h-10 text-white/40 group-hover:text-indigo-400 transition-colors" />
                 </div>
                 <h3 className="text-xl md:text-2xl font-light mb-4 text-white/90">Drag & Drop your image here</h3>
-                <p className="text-slate-500 text-sm md:text-base mb-12 font-light">Supports JPG, PNG, WEBP · Max size 10MB</p>
+                <p className="text-slate-500 text-sm md:text-base mb-12 font-light">
+                  Supports JPG, PNG, WEBP · {maxSizeMB === Infinity ? "Unlimited file size" : `Max size ${maxSizeMB}MB`}
+                </p>
                 <button className="px-12 py-4 bg-white text-black rounded-full font-medium hover:bg-slate-200 transition-all shadow-xl active:scale-95 text-base">
                   Browse Files
                 </button>
@@ -104,7 +135,7 @@ export default function Home() {
 
             {/* Professional Feature Section - Redesigned for Clarity & Luxury */}
             <div className="w-full mt-40 border-t border-white/[0.03] pt-32 pb-24 px-6 md:px-12">
-              <div className="max-w-7xl mx-auto">
+              <div className="w-full">
                 <div className="text-center mb-20">
                   <h2 className="text-sm font-bold tracking-[0.5em] uppercase text-indigo-500/60 mb-4">Core Capabilities</h2>
                   <p className="text-3xl font-light text-white/90 tracking-tight">Sophisticated Detection Suite</p>
@@ -203,7 +234,7 @@ export default function Home() {
 
         {/* ── REPORT ── */}
         {report && (
-          <motion.div key="report" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-6xl flex flex-col">
+          <motion.div key="report" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="w-full flex flex-col">
 
             {/* Header */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-[var(--color-brand-border)] gap-4">
@@ -223,66 +254,72 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Top grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 print-avoid-break">
+            {/* Top grid - Bento Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8 print-avoid-break">
 
               {/* Score + Verdict */}
-              <div className="glass rounded-3xl p-8 flex flex-col items-center justify-center relative overflow-hidden group">
+              <div className="md:col-span-5 lg:col-span-4 glass rounded-[2.5rem] p-8 flex flex-col items-center justify-center relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 pointer-events-none" />
                 <ScoreRing score={report.riskScore} />
-                <div className={`mt-6 px-6 py-2.5 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 border shadow-lg ${classColors[report.classification].bg} ${classColors[report.classification].text} ${classColors[report.classification].border}`}>
+                <div className={`mt-8 px-6 py-2.5 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 border shadow-lg ${classColors[report.classification].bg} ${classColors[report.classification].text} ${classColors[report.classification].border}`}>
                   {report.classification === "SAFE" && <CheckCircle2 className="w-5 h-5" />}
                   {report.classification === "SUSPICIOUS" && <AlertCircle className="w-5 h-5" />}
                   {report.classification === "UNSAFE" && <ShieldAlert className="w-5 h-5" />}
                   {report.classification}
                 </div>
-                <p className="text-center text-sm text-slate-300 mt-5 leading-relaxed font-medium">{report.classificationReason}</p>
+                <p className="text-center text-xs text-slate-300 mt-5 leading-relaxed font-light">{report.classificationReason}</p>
               </div>
 
               {/* Image Preview + File Info */}
-              <div className="glass rounded-3xl p-6 flex flex-col gap-5">
-                <p className="text-xs font-bold text-indigo-300 uppercase tracking-widest flex items-center gap-2">
-                  <Eye className="w-4 h-4" /> Analyzed File
-                </p>
-                {previewUrl && (
-                  <div className="w-full aspect-video bg-black/40 rounded-2xl overflow-hidden border border-white/5 shadow-inner">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={previewUrl} alt="Analyzed" className="w-full h-full object-contain" />
+              <div className="md:col-span-7 lg:col-span-8 glass rounded-[2.5rem] p-6 md:p-8 flex flex-col-reverse lg:flex-row gap-6 lg:gap-8 items-center justify-between">
+                <div className="w-full lg:w-1/2 flex flex-col gap-5">
+                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                    <Eye className="w-4 h-4" /> Analyzed File Details
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    {[
+                      ["Filename", report.technicalData.filename],
+                      ["Size", (report.technicalData.size / 1024).toFixed(1) + " KB"],
+                      ["Dimensions", report.technicalData.dimensions],
+                      ["MIME Type", report.technicalData.mimeType],
+                    ].map(([k, v]) => (
+                      <div key={k} className="bg-white/[0.02] hover:bg-white/[0.04] transition-colors rounded-2xl p-4 border border-white/5 shadow-inner">
+                        <p className="text-[10px] text-slate-500 uppercase tracking-[0.15em] mb-1.5 font-bold">{k}</p>
+                        <p className="font-mono text-white/90 truncate text-sm" title={v}>{v}</p>
+                      </div>
+                    ))}
                   </div>
-                )}
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  {[
-                    ["Filename", report.technicalData.filename],
-                    ["Size", (report.technicalData.size / 1024).toFixed(1) + " KB"],
-                    ["Dimensions", report.technicalData.dimensions],
-                    ["MIME Type", report.technicalData.mimeType],
-                  ].map(([k, v]) => (
-                    <div key={k} className="bg-black/30 rounded-xl p-3 border border-white/5">
-                      <p className="text-[var(--color-brand-muted)] mb-1 font-medium">{k}</p>
-                      <p className="font-mono text-white truncate" title={v}>{v}</p>
-                    </div>
-                  ))}
+                </div>
+                
+                <div className="w-full lg:w-1/2 aspect-video lg:aspect-square max-h-[280px] bg-black/40 rounded-[2rem] overflow-hidden border border-white/5 shadow-inner flex items-center justify-center relative group p-3">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                  {previewUrl && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={previewUrl} alt="Analyzed" className="w-full h-full object-contain rounded-xl group-hover:scale-[1.02] transition-transform duration-700" />
+                  )}
                 </div>
               </div>
 
-              {/* Technical Data */}
-              <div className="glass rounded-3xl p-6 flex flex-col gap-4 justify-between">
-                <p className="text-xs font-bold text-purple-300 uppercase tracking-widest flex items-center gap-2 mb-2">
+              {/* Technical Data (spans full width) */}
+              <div className="md:col-span-12 glass rounded-[2.5rem] p-6 md:p-8">
+                <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest flex items-center gap-2 mb-6">
                   <Code2 className="w-4 h-4" /> Technical Data
                 </p>
-                {[
-                  ["SHA-256 Hash", report.technicalData.fileHash.substring(0, 12) + "..." + report.technicalData.fileHash.slice(-8), report.technicalData.fileHash],
-                  ["Magic Bytes", report.technicalData.magicBytes, undefined],
-                  ["Pixel Entropy", report.technicalData.pixelEntropy, undefined],
-                  ["Software Tag", report.technicalData.softwareTag, undefined],
-                ].map(([k, v, title]) => (
-                  <div key={k as string}>
-                    <p className="text-xs text-[var(--color-brand-muted)] mb-1.5 font-medium">{k}</p>
-                    <p className="font-mono text-sm bg-black/40 px-4 py-2.5 rounded-xl border border-white/5 truncate text-slate-200" title={title as string | undefined}>
-                      {v}
-                    </p>
-                  </div>
-                ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {[
+                    ["SHA-256 Hash", report.technicalData.fileHash.substring(0, 12) + "..." + report.technicalData.fileHash.slice(-8), report.technicalData.fileHash],
+                    ["Magic Bytes", report.technicalData.magicBytes, undefined],
+                    ["Pixel Entropy", report.technicalData.pixelEntropy, undefined],
+                    ["Software Tag", report.technicalData.softwareTag, undefined],
+                  ].map(([k, v, title]) => (
+                    <div key={k as string} className="relative group">
+                      <p className="text-[10px] text-slate-500 uppercase tracking-[0.15em] mb-2 font-bold pl-1">{k}</p>
+                      <div className="font-mono text-sm bg-black/40 group-hover:bg-black/60 transition-colors px-5 py-4 rounded-2xl border border-white/5 truncate text-slate-200 shadow-inner" title={title as string | undefined}>
+                        {v}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -305,15 +342,15 @@ export default function Home() {
 
             {/* EXIF Details */}
             {Object.keys(report.exifDetails).length > 0 && (
-              <div className="mb-8 glass rounded-3xl p-6 md:p-8 print-avoid-break">
-                <h2 className="text-xl md:text-2xl font-extrabold mb-6 flex items-center gap-3 text-white">
+              <div className="mb-8 glass rounded-[2.5rem] p-6 md:p-8 print-avoid-break">
+                <h2 className="text-xl md:text-2xl font-extrabold mb-8 flex items-center gap-3 text-white">
                   <Database className="w-6 h-6 text-indigo-400" /> Embedded Metadata (EXIF)
                 </h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {Object.entries(report.exifDetails).map(([k, v]) => (
-                    <div key={k} className="bg-black/30 rounded-2xl p-4 border border-white/5 hover:bg-black/40 transition-colors">
-                      <p className="text-xs text-[var(--color-brand-muted)] mb-1.5 font-medium">{k}</p>
-                      <p className="text-sm font-mono text-white truncate" title={v}>{v}</p>
+                    <div key={k} className="bg-black/30 rounded-2xl p-5 border border-white/5 hover:bg-black/40 transition-colors shadow-inner group">
+                      <p className="text-[10px] text-slate-500 uppercase tracking-[0.15em] mb-2 font-bold group-hover:text-indigo-400/80 transition-colors">{k}</p>
+                      <p className="text-sm font-mono text-white/90 truncate" title={v}>{v}</p>
                     </div>
                   ))}
                 </div>
@@ -321,11 +358,11 @@ export default function Home() {
             )}
 
             {/* Risk Indicators */}
-            <div className="mb-8 glass rounded-3xl p-6 md:p-8">
-              <h2 className="text-xl md:text-2xl font-extrabold mb-6 flex items-center gap-3 text-white">
+            <div className="mb-8 glass rounded-[2.5rem] p-6 md:p-8">
+              <h2 className="text-xl md:text-2xl font-extrabold mb-8 flex items-center gap-3 text-white">
                 <ShieldAlert className="w-6 h-6 text-indigo-400" /> Security Findings
               </h2>
-              <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {report.indicators.map((ind) => (
                   <IndicatorCard key={ind.id} ind={ind} />
                 ))}
@@ -333,16 +370,16 @@ export default function Home() {
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-4 no-print mt-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-4 no-print mt-4">
               <button 
                 onClick={() => setShowHexModal(true)}
-                className="px-6 py-3 glass rounded-xl hover:bg-white/10 transition-all text-sm font-bold flex items-center gap-2 active:scale-95"
+                className="px-6 py-4 glass rounded-2xl hover:bg-white/10 transition-all text-sm font-bold flex items-center justify-center gap-2 active:scale-95"
               >
                 <FileText className="w-4 h-4" /> View Full Hex Dump
               </button>
               <button 
                 onClick={() => window.print()}
-                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all text-sm font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.4)] active:scale-95"
+                className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl hover:from-indigo-500 hover:to-purple-500 transition-all text-sm font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(99,102,241,0.3)] active:scale-95"
               >
                 <Printer className="w-4 h-4" /> Print / Save PDF
               </button>

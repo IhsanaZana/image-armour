@@ -1,6 +1,6 @@
 export function ScoreRing({ score }: { score: number }) {
-  const color = score < 10 ? "#10b981" : score < 40 ? "#f59e0b" : "#ef4444";
-  const glow = score < 10 ? "rgba(16,185,129,0.2)" : score < 40 ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)";
+  const color = score <= 10 ? "#10b981" : score < 40 ? "#f59e0b" : "#ef4444";
+  const glow = score <= 10 ? "rgba(16,185,129,0.2)" : score < 40 ? "rgba(245,158,11,0.2)" : "rgba(239,68,68,0.2)";
   const dash = 283;
   const offset = dash - (dash * Math.min(score, 100)) / 100;
 

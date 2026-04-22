@@ -369,81 +369,148 @@ export class ImageAnalyzer {
 
       const totalChannels = rawPixels.length;
       const maxBytesToCheck = Math.min(totalChannels, 3 * 1024 * 1024);
-      const hiddenBytes: number[] = [];
-      let currentByte = 0;
+      const hiddenBytesMSB: number[] = [];
+      const hiddenBytesLSB: number[] = [];
+      let currentByteMSB = 0;
+      let currentByteLSB = 0;
       let bitsCollected = 0;
 
       for (let i = 0; i < maxBytesToCheck; i++) {
-        currentByte = (currentByte << 1) | (rawPixels[i] & 1);
+        const bit = rawPixels[i] & 1;
+        currentByteMSB = (currentByteMSB << 1) | bit;
+        currentByteLSB = currentByteLSB | (bit << bitsCollected);
+        
         bitsCollected++;
         if (bitsCollected === 8) {
-          hiddenBytes.push(currentByte);
-          currentByte = 0;
+          hiddenBytesMSB.push(currentByteMSB);
+          hiddenBytesLSB.push(currentByteLSB);
+          currentByteMSB = 0;
+          currentByteLSB = 0;
           bitsCollected = 0;
         }
       }
 
-      const extractNullTerminated = (startOffset: number, maxLen = 8192): { text: string; endOffset: number } | null => {
-        const end = hiddenBytes.indexOf(0, startOffset);
-        if (end === -1 || end === startOffset || (end - startOffset) > maxLen) return null;
-        const candidate = Buffer.from(hiddenBytes.slice(startOffset, end));
+      let lsbMessage: string | null = null;
+      let lsbMessageLength = 0;
+      let hiddenBytesToUse = hiddenBytesMSB;
+
+      // Helper to check if a buffer is mostly readable text
+      const isReadableText = (buf: Buffer, minLen: number = 8): string | null => {
+        if (buf.length < minLen) return null;
         try {
-          const text = candidate.toString("utf8");
-          const printable = text.split("").filter((c) => {
-            const code = c.charCodeAt(0);
-            return (code >= 32 && code <= 126) || code === 9 || code === 10 || code === 13;
-          }).length;
-          const ratio = text.length > 0 ? printable / text.length : 0;
-          if (ratio > 0.80) return { text, endOffset: end };
+          const text = buf.toString("utf8");
+          if (text.includes('\ufffd')) return null;
+          
+          let printableCount = 0;
+          for (let i = 0; i < text.length; i++) {
+            const code = text.charCodeAt(i);
+            if ((code >= 32 && code <= 126) || code === 9 || code === 10 || code === 13) {
+              printableCount++;
+            }
+          }
+          const ratio = printableCount / text.length;
+          if (ratio >= 0.90 && text.trim().length >= minLen) {
+            return text;
+          }
         } catch { /* ignore */ }
         return null;
       };
 
-      const KNOWN_HEADERS = ["Steg", "steg", "STEG", "msg", "MSG", "hidden", "HIDDEN", "data", "DATA"];
-      let lsbMessage: string | null = null;
-      let lsbMessageLength = 0;
-
-      {
-        let offset = 0;
-        const maxScanOffset = Math.min(hiddenBytes.length, 8192);
-        while (offset < maxScanOffset && !lsbMessage) {
-          const result = extractNullTerminated(offset, 4096);
-          if (!result) break;
-          const isKnownHeader = KNOWN_HEADERS.includes(result.text.trim());
-          if (!isKnownHeader && result.text.trim().length > 0) {
-            lsbMessage = result.text;
-            lsbMessageLength = result.text.length;
+      const findPayload = (hiddenBytes: number[]): { text: string, length: number } | null => {
+        // 1. Length-Prefixed Payload (devglan and others)
+        if (hiddenBytes.length >= 4) {
+          // Big-Endian prefix
+          const claimedLenBE = ((hiddenBytes[0] << 24) | (hiddenBytes[1] << 16) | (hiddenBytes[2] << 8) | hiddenBytes[3]) >>> 0;
+          if (claimedLenBE > 0 && claimedLenBE <= 8192 && claimedLenBE + 4 <= hiddenBytes.length) {
+            const candidate = Buffer.from(hiddenBytes.slice(4, 4 + claimedLenBE));
+            const text = isReadableText(candidate, 5);
+            if (text) return { text, length: claimedLenBE };
           }
-          offset = result.endOffset + 1;
-        }
-      }
-
-      if (!lsbMessage && hiddenBytes.length >= 4) {
-        const claimedLen = (hiddenBytes[0] << 24) | (hiddenBytes[1] << 16) | (hiddenBytes[2] << 8) | hiddenBytes[3];
-        if (claimedLen > 0 && claimedLen <= 4096 && claimedLen + 4 <= hiddenBytes.length) {
-          const candidate = Buffer.from(hiddenBytes.slice(4, 4 + claimedLen));
-          const text = candidate.toString("utf8");
-          const printable = text.split("").filter((c) => {
-            const code = c.charCodeAt(0);
-            return (code >= 32 && code <= 126) || code === 9 || code === 10 || code === 13;
-          }).length;
-          const ratio = claimedLen > 0 ? printable / text.length : 0;
-          if (ratio > 0.80 && text.trim().length > 0) {
-            lsbMessage = text;
-            lsbMessageLength = claimedLen;
+          
+          // Little-Endian prefix
+          const claimedLenLE = ((hiddenBytes[3] << 24) | (hiddenBytes[2] << 16) | (hiddenBytes[1] << 8) | hiddenBytes[0]) >>> 0;
+          if (claimedLenLE > 0 && claimedLenLE <= 8192 && claimedLenLE + 4 <= hiddenBytes.length) {
+            const candidate = Buffer.from(hiddenBytes.slice(4, 4 + claimedLenLE));
+            const text = isReadableText(candidate, 5);
+            if (text) return { text, length: claimedLenLE };
           }
         }
-      }
 
-      if (!lsbMessage) {
-        const sample = Buffer.from(hiddenBytes.slice(0, 512)).toString("binary");
-        const readableRun = sample.match(/[ -~\t\n\r]{6,}/g);
-        if (readableRun && readableRun.length > 0) {
-          const longestRun = readableRun.sort((a, b) => b.length - a.length)[0];
-          if (longestRun.length >= 6) {
-            lsbMessage = longestRun.trim();
-            lsbMessageLength = longestRun.length;
+        // 2. Scan for explicitly Null-Terminated Strings (with potential binary headers)
+        // Many tools embed [Binary Header] + [Payload] + \0. 
+        // We search the first 16KB for a null byte, then walk backwards to extract printable ASCII.
+        const searchLimit = Math.min(hiddenBytes.length, 16384);
+        for (let i = 0; i < searchLimit; i++) {
+          if (hiddenBytes[i] === 0) {
+            const textBytes: number[] = [];
+            for (let j = i - 1; j >= 0; j--) {
+              const code = hiddenBytes[j];
+              // Printable ASCII + common whitespace
+              if ((code >= 32 && code <= 126) || code === 9 || code === 10 || code === 13) {
+                textBytes.unshift(code);
+              } else {
+                break; // Stop at the first binary byte (header)
+              }
+            }
+            
+            if (textBytes.length >= 8) {
+              const text = Buffer.from(textBytes).toString("utf8");
+              const pureTextMatch = text.match(/[a-zA-Z0-9 \n\r]/g);
+              const pureRatio = pureTextMatch ? pureTextMatch.length / text.length : 0;
+              // Require 85% purity to allow standard punctuation but prevent ASCII noise
+              if (pureRatio >= 0.85) {
+                return { text: text.trim(), length: textBytes.length };
+              }
+            }
           }
+        }
+
+        // 3. Strict Regex Fallback
+        // Scans the full extracted bytes for raw embedded plaintext without length prefixes or null terminators.
+        const sample = Buffer.from(hiddenBytes).toString("binary");
+        const runs = sample.match(/[ -~\t\n\r]{8,}/g);
+        
+        if (runs) {
+          for (const run of runs.sort((a, b) => b.length - a.length)) {
+            const pureTextMatch = run.match(/[a-zA-Z0-9 \n\r]/g);
+            const pureRatio = pureTextMatch ? pureTextMatch.length / run.length : 0;
+            
+            // A. Long Strings (>= 15 chars)
+            // Statistically safe from false positives in random noise if purity is high (>= 95%).
+            if (run.length >= 15 && pureRatio >= 0.95) {
+              return { text: run.trim(), length: run.length };
+            }
+            
+            // B. Short Strings (8-14 chars)
+            // Highly susceptible to false positives (e.g., random 8-char sequences like 'bIKkNKbX').
+            // Must strictly evaluate human-text characteristics to distinguish from noise.
+            if (run.length >= 8 && run.length < 15 && pureRatio === 1.0) {
+              const hasSpace = run.includes(" ");
+              const vowelCount = run.match(/[aeiouyAEIOUY]/g)?.length || 0;
+              const isUrl = run.startsWith("http") || run.startsWith("www.");
+              
+              // True human text short payloads usually contain spaces between words and vowels.
+              if ((hasSpace && vowelCount >= 2) || isUrl) {
+                return { text: run.trim(), length: run.length };
+              }
+            }
+          }
+        }
+
+        return null;
+      };
+
+      const payloadMSB = findPayload(hiddenBytesMSB);
+      if (payloadMSB) {
+        lsbMessage = payloadMSB.text;
+        lsbMessageLength = payloadMSB.length;
+        hiddenBytesToUse = hiddenBytesMSB;
+      } else {
+        const payloadLSB = findPayload(hiddenBytesLSB);
+        if (payloadLSB) {
+          lsbMessage = payloadLSB.text;
+          lsbMessageLength = payloadLSB.length;
+          hiddenBytesToUse = hiddenBytesLSB;
         }
       }
 
@@ -455,7 +522,7 @@ export class ImageAnalyzer {
           payloadType: "Hidden text message embedded in pixel LSBs",
           sizeBytes: lsbMessageLength,
           textPreview: lsbMessage,
-          hexDump: Buffer.from(hiddenBytes.slice(0, Math.min(lsbMessageLength + 4, 128)))
+          hexDump: Buffer.from(hiddenBytesToUse.slice(0, Math.min(lsbMessageLength + 4, 128)))
             .toString("hex")
             .toUpperCase()
             .match(/.{1,2}/g)
