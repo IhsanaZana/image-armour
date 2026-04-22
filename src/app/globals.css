@@ -40,31 +40,75 @@ body {
   border: 1px solid var(--color-brand-border);
 }
 
-/* Print Styles */
+/* Print Styles (Ink-Saving Light Mode) */
 @media print {
-  body {
-    background: white;
-    color: black;
+  @page {
+    size: A4;
+    margin: 1cm;
   }
+  
+  html, body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background-color: white !important;
+    background-image: none !important;
+    color: black !important;
+    min-height: auto !important;
+  }
+
   .no-print, header, .dropzone-area, button {
     display: none !important;
   }
+
+  /* Reset Glass panels to clean bordered boxes */
   .glass {
-    background: transparent;
-    border: 1px solid #e2e8f0;
-    box-shadow: none;
-    color: black;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    background: white !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
   }
-  * {
-    color: black !important;
-    text-shadow: none !important;
-    border-color: #cbd5e1 !important;
+
+  /* Force light text to be dark for readability */
+  .text-white, .text-slate-200, .text-slate-300, .text-slate-400 {
+    color: #0f172a !important;
   }
+  .text-slate-500 {
+    color: #475569 !important;
+  }
+
+  /* Deepen status colors slightly so they pop on white paper */
+  .text-red-400 { color: #dc2626 !important; }
+  .text-emerald-400 { color: #059669 !important; }
+  .text-amber-400 { color: #d97706 !important; }
+  .text-indigo-400 { color: #4f46e5 !important; }
+  
+  /* Reset backgrounds of data cells and image container */
+  .bg-black\/40, .bg-black\/30, .bg-white\/\[0\.02\], .bg-white\/\[0\.04\] {
+    background-color: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  /* Make sure the image is visible */
+  img {
+    max-width: 100% !important;
+    object-fit: contain !important;
+    opacity: 1 !important;
+    display: block !important;
+  }
+
   .print-page-break {
+    break-before: page;
     page-break-before: always;
   }
+
   .print-avoid-break {
+    break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  p, h1, h2, h3, h4, h5, h6, div {
+    break-inside: avoid-page;
   }
 }
 
