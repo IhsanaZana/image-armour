@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   CloudUpload, AlertCircle, CheckCircle2, ShieldAlert,
   Code2, Download, FileText, Info, ShieldCheck, X,
-  ChevronDown, ChevronUp, Eye, Lock, Cpu, Database, Printer
+  ChevronDown, ChevronUp, Eye, Lock, Cpu, Database, Printer,
+  Binary
 } from "lucide-react";
 
 import { IndicatorCard } from "@/components/IndicatorCard";
@@ -141,42 +142,49 @@ export default function Home() {
                   <p className="text-3xl font-light text-white/90 tracking-tight">Sophisticated Detection Suite</p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {[
                     { 
                       id: "mime",
                       icon: <Lock className="w-8 h-8 text-indigo-400" />, 
                       label: "MIME Validation", 
                       desc: "Binary Analysis",
-                      hoverText: "Verifying binary signatures to prevent malicious script execution disguised as standard image formats."
+                      hoverText: "Verifying binary signatures against actual file extensions to prevent malicious masquerading."
                     },
                     { 
                       id: "payload",
                       icon: <Eye className="w-8 h-8 text-purple-400" />, 
                       label: "Hidden Payloads", 
-                      desc: "EOF Steganography",
-                      hoverText: "Isolating anomalies beyond the image data stream to detect embedded malicious payloads."
+                      desc: "EOF Analysis",
+                      hoverText: "Inspecting the End of File (EOF) sequence to detect appended payloads and extra data outside the image stream."
                     },
                     { 
                       id: "exif",
                       icon: <Database className="w-8 h-8 text-pink-400" />, 
                       label: "EXIF & GPS", 
                       desc: "Privacy Audit",
-                      hoverText: "Deep-layer metadata inspection to reveal hidden geolocation and device identification data."
+                      hoverText: "Deep-layer metadata extraction to reveal hidden geolocation, device info, and potential tracking data."
                     },
                     { 
                       id: "entropy",
                       icon: <Cpu className="w-8 h-8 text-blue-400" />, 
-                      label: "Entropy Scan", 
-                      desc: "Math Profiling",
-                      hoverText: "Statistical randomness analysis to identify encrypted channels smuggled within pixel structures."
+                      label: "Entropy Profiling", 
+                      desc: "Math Analysis",
+                      hoverText: "Statistical randomness calculation across pixel structures to detect encrypted or heavily compressed hidden channels."
+                    },
+                    { 
+                      id: "lsb",
+                      icon: <Binary className="w-8 h-8 text-teal-400" />, 
+                      label: "LSB Steganography", 
+                      desc: "Pixel Inspection",
+                      hoverText: "Decoding Least Significant Bits (LSB) across RGB channels to uncover hidden plaintext messages."
                     },
                     { 
                       id: "hash",
                       icon: <Code2 className="w-8 h-8 text-emerald-400" />, 
-                      label: "SHA-256 Hash", 
+                      label: "SHA-256 Fingerprint", 
                       desc: "Cryptographic ID",
-                      hoverText: "Generating unique binary fingerprints to instantly verify file integrity against global threat intelligence."
+                      hoverText: "Generating a unique cryptographic hash to instantly verify file integrity and track modifications."
                     },
                   ].map((f) => (
                     <div 
