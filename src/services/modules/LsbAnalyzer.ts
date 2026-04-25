@@ -7,11 +7,14 @@ export class LsbAnalyzer {
    * Extracts Least Significant Bits to discover hidden text messages.
    * 
    * Edge Cases Handled:
+   * - Proprietary Magic Bytes (Devglan): Identifies custom "Steg" headers (`0x53746567`) 
+   *   used by commercial steganography tools to correctly parse shifted length prefixes 
+   *   and prevent massive false-positive length rejections.
    * - Parallel RGBA vs RGB Extraction: Some tools (like Devglan) skip the Alpha channel, 
    *   while others don't. We run a dual-pass to catch both without corrupting the bitstream.
    * - Strict NLP Filtering: Purely mathematical extraction results in random "ghost" strings (e.g. "YPOV Rkkw"). 
    *   We enforce strict per-word vowel checks and linguistic shapes to eliminate false positives.
-   * - Length Prefixes: Safely unpacks Big-Endian and Little-Endian 32-bit length headers.
+   * - Length Prefixes: Safely unpacks standard Big-Endian and Little-Endian 32-bit length headers.
    * - Null-Terminated Walkbacks: Detects strings cleanly terminated by 0x00 and isolates the payload.
    * - Complex Spaceless Payloads: Recovers encrypted/base64 strings if they are long and 100% text-dense.
    */
@@ -117,7 +120,19 @@ export class LsbAnalyzer {
       };
 
       const findPayload = (hiddenBytes: number[]): { text: string, length: number } | null => {
-        // 1. Length-Prefixed Payload (Devglan)
+        // 1. Length-Prefixed Payload (Devglan specific "Steg" magic bytes)
+        if (hiddenBytes.length >= 12 && 
+            hiddenBytes[0] === 0x53 && hiddenBytes[1] === 0x74 && 
+            hiddenBytes[2] === 0x65 && hiddenBytes[3] === 0x67) {
+          const claimedLenBE = ((hiddenBytes[8] << 24) | (hiddenBytes[9] << 16) | (hiddenBytes[10] << 8) | hiddenBytes[11]) >>> 0;
+          if (claimedLenBE > 0 && claimedLenBE <= 8192 && claimedLenBE + 12 <= hiddenBytes.length) {
+            const candidate = Buffer.from(hiddenBytes.slice(12, 12 + claimedLenBE));
+            const text = isReadableText(candidate, 2); // Devglan uses explicit magic bytes, so even short text is highly reliable
+            if (text) return { text, length: claimedLenBE };
+          }
+        }
+
+        // 1.5. Generic Length-Prefixed Payload
         if (hiddenBytes.length >= 4) {
           const claimedLenBE = ((hiddenBytes[0] << 24) | (hiddenBytes[1] << 16) | (hiddenBytes[2] << 8) | hiddenBytes[3]) >>> 0;
           if (claimedLenBE > 0 && claimedLenBE <= 8192 && claimedLenBE + 4 <= hiddenBytes.length) {
