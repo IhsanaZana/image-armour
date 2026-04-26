@@ -1,0 +1,797 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Search, Fingerprint, Calculator, Ticket, FileCode2, ShieldAlert,
+  ChevronRight, Zap, Image as ImageIcon, Eye, BookOpen,
+  Layers, Code, Box, Database, Server, MapPin, Camera, Key, FileText, Binary, Folder, File, ArrowRight
+} from "lucide-react";
+
+export default function PlaybookPage() {
+  const [activeChapter, setActiveChapter] = useState(0);
+
+  const chapters = [
+    { id: "intro", title: "Welcome to Image Armour! 🏰" },
+    { id: "tech-stack", title: "1. The Builder's Tools (Tech Stack) 🛠️" },
+    { id: "architecture", title: "2. Two Worlds: Frontend & Backend 🌍" },
+    { id: "folder-structure", title: "3. Map of the Castle (Folders) 🗺️" },
+    { id: "flow", title: "4. The Grand Journey (How it Works) 🎢" },
+    { id: "sharp", title: "5. The Magnifying Glass (sharp) 🔍" },
+    { id: "file-type", title: "6. The Disguise Detector (file-type) 🕵️" },
+    { id: "exif", title: "7. The GPS Tracker (exif-parser) 🛰️" },
+    { id: "entropy", title: "8. The Chaos Meter (Entropy) 🌪️" },
+    { id: "lsb", title: "9. The Secret Decoder (LSB) 🤫" },
+    { id: "hash", title: "10. The Magic Fingerprint (SHA-256) ✋" },
+    { id: "crypto", title: "11. The Math Wizard (crypto) 🧙‍♂️" },
+    { id: "hexdump", title: "12. X-Ray Vision (Hex Dump) 🦴" },
+    { id: "cheat-sheet", title: "13. The Master Cheat Sheet 📝" }
+  ];
+
+  const nextChapter = () => {
+    setActiveChapter((p) => Math.min(chapters.length - 1, p + 1));
+  };
+  const prevChapter = () => {
+    setActiveChapter((p) => Math.max(0, p - 1));
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") nextChapter();
+      if (e.key === "ArrowLeft") prevChapter();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-pink-300 overflow-x-hidden">
+      {/* Header */}
+      <header className="bg-white border-b-4 border-sky-300 p-3 md:p-4 sticky top-0 z-50 flex flex-col md:flex-row items-center justify-between shadow-sm gap-2">
+        <div className="flex items-center gap-3">
+          <div className="bg-sky-500 p-2 rounded-xl rotate-3 shadow-sm">
+            <BookOpen className="text-white w-6 h-6 md:w-8 md:h-8" />
+          </div>
+          <h1 className="text-xl md:text-2xl font-extrabold text-sky-600 tracking-tight text-center">Image Armour Playbook</h1>
+        </div>
+        <div className="text-xs md:text-sm font-bold bg-sky-100 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sky-700 flex items-center gap-2">
+          <span>Chapter {activeChapter} of {chapters.length - 1}</span>
+          <span className="hidden lg:inline text-sky-400 font-normal">| Use ← → keys</span>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="w-full max-w-5xl mx-auto p-4 md:p-6 lg:p-8 mt-4 md:mt-8">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeChapter}
+            initial={{ opacity: 0, y: 30, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -30, scale: 0.98 }}
+            transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
+            className="bg-white rounded-3xl p-6 md:p-10 border-4 border-slate-200 shadow-xl w-full overflow-hidden"
+          >
+            <div className="mb-8 border-b-2 border-slate-100 pb-4">
+              <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-slate-800 tracking-tight leading-tight">
+                {chapters[activeChapter].title}
+              </h2>
+            </div>
+            
+            {activeChapter === 0 && <IntroSection onNext={nextChapter} />}
+            {activeChapter === 1 && <TechStackSection />}
+            {activeChapter === 2 && <ArchitectureSection />}
+            {activeChapter === 3 && <FolderStructureSection />}
+            {activeChapter === 4 && <FlowSection />}
+            {activeChapter === 5 && <SharpSection />}
+            {activeChapter === 6 && <FileTypeSection />}
+            {activeChapter === 7 && <ExifSection />}
+            {activeChapter === 8 && <EntropySection />}
+            {activeChapter === 9 && <LsbSection />}
+            {activeChapter === 10 && <HashSection />}
+            {activeChapter === 11 && <CryptoSection />}
+            {activeChapter === 12 && <HexDumpSection />}
+            {activeChapter === 13 && <CheatSheetSection />}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Navigation Controls */}
+        <div className="flex flex-col sm:flex-row justify-between mt-8 gap-4">
+          <button
+            onClick={prevChapter}
+            disabled={activeChapter === 0}
+            className="w-full sm:w-auto px-6 py-4 bg-white border-4 border-slate-200 rounded-2xl font-bold text-slate-500 disabled:opacity-50 hover:-translate-y-1 hover:border-slate-300 transition-all shadow-sm flex items-center justify-center gap-2"
+          >
+            <ChevronRight className="rotate-180 w-5 h-5" /> Back
+          </button>
+          
+          <select 
+            className="w-full sm:w-auto p-3 rounded-xl border-2 border-slate-200 bg-white font-bold text-slate-600 focus:outline-none focus:border-sky-500"
+            value={activeChapter}
+            onChange={(e) => setActiveChapter(Number(e.target.value))}
+          >
+            {chapters.map((c, i) => (
+              <option key={c.id} value={i}>{c.title}</option>
+            ))}
+          </select>
+
+          <button
+            onClick={nextChapter}
+            disabled={activeChapter === chapters.length - 1}
+            className="w-full sm:w-auto px-8 py-4 bg-sky-500 border-4 border-sky-600 rounded-2xl font-extrabold text-white disabled:opacity-50 hover:-translate-y-1 hover:bg-sky-400 hover:shadow-lg transition-all shadow flex items-center justify-center gap-2"
+          >
+            Next <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// --- CHAPTER COMPONENTS ---
+
+function IntroSection({ onNext }: { onNext: () => void }) {
+  return (
+    <div className="text-center py-10">
+      <motion.div 
+        animate={{ rotate: [0, -5, 5, -5, 5, 0], y: [0, -10, 0] }} 
+        transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+        className="text-7xl md:text-9xl mb-8 inline-block drop-shadow-xl"
+      >
+        🏰
+      </motion.div>
+      <p className="text-xl md:text-2xl text-slate-600 mb-10 max-w-3xl mx-auto leading-relaxed font-medium">
+        Welcome to the ultimate deep-dive! You are going to learn exactly how our project is built, 
+        how the Next.js framework connects the frontend to the backend, and how our 5 magical detective modules catch hidden secrets!
+      </p>
+      <button 
+        onClick={onNext}
+        className="px-8 py-4 md:px-10 md:py-5 bg-emerald-500 border-b-4 border-emerald-700 active:border-b-0 active:translate-y-1 rounded-2xl font-extrabold text-white text-xl md:text-2xl hover:bg-emerald-400 transition-all shadow-lg w-full sm:w-auto"
+      >
+        Let's Start the Adventure! 🚀
+      </button>
+    </div>
+  );
+}
+
+function TechStackSection() {
+  const stack = [
+    { name: "Next.js", icon: <Layers size={40}/>, color: "bg-black text-white", desc: "The Castle. It's a 'Full Stack' framework, meaning it builds BOTH the User Interface (buttons) AND the Backend Server (APIs) in one single project." },
+    { name: "TypeScript", icon: <Code size={40}/>, color: "bg-blue-600 text-white", desc: "The Spellchecker. It's just JavaScript, but it checks for silly mistakes before we run the code. If we try to pass a 'string' when it expects a 'number', it yells at us!" },
+    { name: "Tailwind CSS", icon: <Zap size={40}/>, color: "bg-teal-500 text-white", desc: "The Paintbrush. Instead of writing separate CSS files, we just write classes like 'bg-red-500 rounded-xl' directly in our HTML/JSX to style things instantly." },
+    { name: "pnpm", icon: <Box size={40}/>, color: "bg-amber-500 text-white", desc: "The Delivery Truck. It's like 'npm', but much faster. It installs all the packages (like sharp, crypto) that our project needs to run." }
+  ];
+
+  return (
+    <div className="grid md:grid-cols-2 gap-6">
+      {stack.map((tech, i) => (
+        <motion.div 
+          key={i} 
+          initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
+          className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-6 bg-slate-50 border-2 border-slate-200 rounded-3xl hover:border-sky-300 transition-colors shadow-sm"
+        >
+          <div className={`${tech.color} p-4 rounded-2xl shadow-inner flex-shrink-0`}>
+            {tech.icon}
+          </div>
+          <div>
+            <h3 className="text-2xl font-black text-slate-800 mb-2">{tech.name}</h3>
+            <p className="text-slate-600 font-medium text-sm leading-relaxed">{tech.desc}</p>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+function ArchitectureSection() {
+  return (
+    <div className="flex flex-col items-center">
+      <p className="text-lg md:text-xl text-slate-600 mb-8 text-center font-medium max-w-4xl">
+        In older apps, the <strong>Frontend</strong> (React) and <strong>Backend</strong> (Node.js) were two separate folders running on two separate servers. <br/>
+        In <strong>Next.js</strong>, they live together happily under one roof!
+      </p>
+
+      <div className="w-full max-w-4xl relative">
+        {/* Connection Line */}
+        <div className="hidden md:block absolute top-1/2 left-1/4 right-1/4 h-2 bg-slate-200 -z-10 rounded-full border-t border-b border-slate-300 overflow-hidden">
+          <motion.div 
+            animate={{ x: ["-100%", "300%"] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="w-1/3 h-full bg-sky-400"
+          />
+        </div>
+
+        <div className="flex flex-col md:flex-row justify-between gap-8 md:gap-0">
+          {/* Frontend */}
+          <div className="bg-white border-4 border-indigo-200 rounded-3xl p-6 w-full md:w-5/12 shadow-xl relative z-10">
+            <div className="bg-indigo-500 text-white px-4 py-1 rounded-full text-sm font-bold absolute -top-4 left-6 shadow">Client (Browser)</div>
+            <h3 className="text-2xl font-black text-indigo-900 mb-4 flex items-center gap-2"><ImageIcon/> Frontend</h3>
+            <ul className="space-y-3 text-sm font-medium text-indigo-800">
+              <li className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-400"/> Where you click "Upload"</li>
+              <li className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-400"/> Made of React Components</li>
+              <li className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-400"/> Sends the image as a "FormData" POST request to the API.</li>
+              <li className="flex items-center gap-2 mt-4"><FileText className="text-green-500"/> Waits to receive <strong className="bg-indigo-100 px-1 rounded">JSON Data</strong> to draw the fancy report on the screen.</li>
+            </ul>
+          </div>
+
+          {/* JSON Bridge Mobile */}
+          <div className="md:hidden flex flex-col items-center justify-center text-sky-500 font-bold py-4">
+            <ArrowRight className="w-8 h-8 rotate-90" />
+            <span>Sends Image POST Request</span>
+            <ArrowRight className="w-8 h-8 -rotate-90 mt-2" />
+            <span>Returns JSON Report</span>
+          </div>
+
+          {/* Backend */}
+          <div className="bg-white border-4 border-emerald-200 rounded-3xl p-6 w-full md:w-5/12 shadow-xl relative z-10">
+            <div className="bg-emerald-500 text-white px-4 py-1 rounded-full text-sm font-bold absolute -top-4 left-6 shadow">Server (Node.js API)</div>
+            <h3 className="text-2xl font-black text-emerald-900 mb-4 flex items-center gap-2"><Server/> Backend</h3>
+            <ul className="space-y-3 text-sm font-medium text-emerald-800">
+              <li className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-400"/> Route Handler (`api/analyze`)</li>
+              <li className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-400"/> Runs the 5 Detective Modules</li>
+              <li className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-400"/> Runs `sharp` & `crypto`</li>
+              <li className="flex items-center gap-2 mt-4"><Binary className="text-emerald-500"/> Packages all findings into a <strong className="bg-emerald-100 px-1 rounded">JSON Object</strong> and sends it back!</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FolderStructureSection() {
+  const [activeFolder, setActiveFolder] = useState("app");
+
+  const folders = {
+    "app": { title: "src/app/", desc: "The heart of Next.js frontend! Every folder here becomes a web page. `page.tsx` is the home page. `api/analyze/route.ts` is the secret Backend server endpoint!", color: "text-blue-500", bg: "bg-blue-50 border-blue-200" },
+    "components": { title: "src/components/", desc: "Reusable Lego blocks for the UI. Things like buttons, upload boxes, and the StatusBadge are kept here to keep the main code clean.", color: "text-purple-500", bg: "bg-purple-50 border-purple-200" },
+    "services": { title: "src/services/modules/", desc: "The Backend Detectives! This is where all the heavy lifting happens. We have a separate file for LsbAnalyzer, ExifAnalyzer, etc.", color: "text-red-500", bg: "bg-red-50 border-red-200" },
+    "public": { title: "public/", desc: "Static assets. Things like the logo images or fonts go here. The browser can download these directly.", color: "text-emerald-500", bg: "bg-emerald-50 border-emerald-200" },
+  };
+
+  return (
+    <div className="flex flex-col md:flex-row gap-6">
+      <div className="w-full md:w-1/3 bg-slate-800 text-slate-300 rounded-2xl p-4 font-mono text-sm shadow-xl overflow-x-auto">
+        <div className="flex items-center gap-2 text-white mb-4"><Folder size={16} className="text-yellow-400" /> image-armour</div>
+        <div className="ml-4 border-l border-slate-600 pl-4 space-y-2">
+          
+          <div className="cursor-pointer hover:text-white flex items-center gap-2" onClick={() => setActiveFolder("app")}>
+            <Folder size={16} className={activeFolder === "app" ? "text-blue-400" : "text-slate-400"} /> src/app
+          </div>
+          <div className="ml-4 border-l border-slate-600 pl-4 text-xs opacity-70">
+            <div className="flex items-center gap-2"><File size={12}/> page.tsx (Frontend)</div>
+            <div className="flex items-center gap-2"><File size={12}/> api/analyze/route.ts (Backend)</div>
+          </div>
+
+          <div className="cursor-pointer hover:text-white flex items-center gap-2 mt-2" onClick={() => setActiveFolder("components")}>
+            <Folder size={16} className={activeFolder === "components" ? "text-purple-400" : "text-slate-400"} /> src/components
+          </div>
+          
+          <div className="cursor-pointer hover:text-white flex items-center gap-2 mt-2" onClick={() => setActiveFolder("services")}>
+            <Folder size={16} className={activeFolder === "services" ? "text-red-400" : "text-slate-400"} /> src/services/modules
+          </div>
+          <div className="ml-4 border-l border-slate-600 pl-4 text-xs opacity-70">
+            <div className="flex items-center gap-2"><File size={12}/> ExifAnalyzer.ts</div>
+            <div className="flex items-center gap-2"><File size={12}/> LsbAnalyzer.ts</div>
+          </div>
+
+          <div className="cursor-pointer hover:text-white flex items-center gap-2 mt-2" onClick={() => setActiveFolder("public")}>
+            <Folder size={16} className={activeFolder === "public" ? "text-emerald-400" : "text-slate-400"} /> public
+          </div>
+
+        </div>
+      </div>
+      <div className="w-full md:w-2/3">
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={activeFolder}
+            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+            className={`h-full border-4 rounded-3xl p-8 flex flex-col justify-center ${folders[activeFolder as keyof typeof folders].bg}`}
+          >
+            <h3 className={`text-3xl font-black mb-4 font-mono ${folders[activeFolder as keyof typeof folders].color}`}>
+              {folders[activeFolder as keyof typeof folders].title}
+            </h3>
+            <p className="text-xl text-slate-700 font-medium leading-relaxed">
+              {folders[activeFolder as keyof typeof folders].desc}
+            </p>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function FlowSection() {
+  const steps = [
+    { title: "User Uploads", desc: "React Frontend posts image to /api/analyze", icon: <ImageIcon/>, color: "bg-blue-500", role: "Frontend" },
+    { title: "API Receives Buffer", desc: "Next.js Backend converts it to raw byte numbers", icon: <Server/>, color: "bg-emerald-500", role: "Backend" },
+    { title: "Sharp Processes", desc: "Breaks image into RGB pixels", icon: <Search/>, color: "bg-purple-500", role: "Backend" },
+    { title: "5 Modules Scan", desc: "Exif, LSB, Entropy, FileType, AppendedData", icon: <ShieldAlert/>, color: "bg-red-500", role: "Backend" },
+    { title: "JSON Response", desc: "Creates JSON: { status: 'UNSAFE', score: 95 }", icon: <FileCode2/>, color: "bg-amber-500", role: "Backend" },
+    { title: "UI Renders", desc: "Frontend reads JSON, shows red badging & charts!", icon: <Zap/>, color: "bg-sky-500", role: "Frontend" },
+  ];
+
+  return (
+    <div>
+      <div className="relative max-w-2xl mx-auto py-8">
+        {/* Connecting Line */}
+        <div className="absolute top-0 bottom-0 left-[2rem] sm:left-[3.5rem] w-2 bg-slate-200 z-0 rounded-full"></div>
+        
+        <div className="space-y-8 relative z-10">
+          {steps.map((step, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="flex items-center gap-4 sm:gap-6"
+            >
+              <div className={`${step.color} w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-white shadow-xl border-4 border-white flex-shrink-0 z-10`}>
+                {React.cloneElement(step.icon as React.ReactElement<any>, { size: 32 })}
+              </div>
+              <div className="bg-white p-4 sm:p-5 rounded-2xl flex-1 border-2 border-slate-100 shadow-md relative hover:shadow-lg transition-shadow">
+                <span className={`absolute -top-3 right-4 text-xs font-bold px-3 py-1 rounded-full text-white ${step.role === 'Frontend' ? 'bg-indigo-500' : 'bg-emerald-500'}`}>
+                  {step.role}
+                </span>
+                <h4 className="font-black text-slate-800 text-lg sm:text-xl">{step.title}</h4>
+                <p className="text-sm sm:text-base font-medium text-slate-500 mt-1">{step.desc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SharpSection() {
+  const [zoom, setZoom] = useState(false);
+  return (
+    <div className="flex flex-col md:flex-row gap-8 items-center">
+      <div className="flex-1">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="bg-purple-500 p-3 rounded-2xl text-white shadow-inner">
+            <Search size={32} />
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">What is "sharp"?</h2>
+        </div>
+        <p className="text-lg text-slate-600 font-medium leading-relaxed mb-4 bg-purple-50 p-4 rounded-2xl border-2 border-purple-100">
+          <strong>sharp</strong> is our magical magnifying glass. It opens an image and breaks it down into millions of tiny colored dots called <strong>pixels</strong>.
+        </p>
+        <p className="text-slate-600 mb-6 text-sm sm:text-base">
+          Instead of seeing a motorcycle, <strong>sharp</strong> gives us a giant list of numbers for Red, Green, Blue, and Alpha (transparency): <br/>
+          <code className="bg-slate-100 px-2 py-1 rounded font-mono text-sm text-pink-600 font-bold mt-2 inline-block break-all">
+            [182, 45, 201, 255, 183, 44, ...]
+          </code>
+        </p>
+        <div className="bg-yellow-100 p-4 rounded-xl border-2 border-yellow-300 text-yellow-800 font-bold text-sm">
+          ⚠️ Note: sharp is the ONLY package that touches the image pixels! Not crypto, not SHA-256. Just sharp.
+        </div>
+      </div>
+      <div className="flex-1 w-full bg-slate-50 rounded-3xl p-6 border-4 border-slate-200 flex flex-col items-center cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => setZoom(!zoom)}>
+        <p className="text-xs sm:text-sm font-bold text-purple-600 mb-4 uppercase tracking-widest flex items-center gap-2">
+          <Zap size={16} /> Click picture to use Sharp!
+        </p>
+        <motion.div 
+          className="relative w-full max-w-[250px] aspect-square bg-slate-200 rounded-2xl overflow-hidden border-4 border-white shadow-xl"
+        >
+          <img 
+            src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&q=80" 
+            className="w-full h-full object-cover transition-opacity duration-300"
+            style={{ opacity: zoom ? 0.2 : 1 }}
+            alt="Motorcycle"
+          />
+          <AnimatePresence>
+            {zoom && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="absolute inset-0 grid grid-cols-4 grid-rows-4 gap-1 p-2"
+              >
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <motion.div 
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    className="rounded flex items-center justify-center shadow-sm text-[8px] sm:text-[10px] font-mono font-bold text-white/90"
+                    style={{
+                      backgroundImage: `linear-gradient(to bottom right, ${['#f87171', '#34d399', '#60a5fa', '#a78bfa'][i % 4]}, ${['#dc2626', '#059669', '#2563eb', '#7c3aed'][i % 4]})`
+                    }}
+                  >
+                    R:{100+i*5}<br/>G:{40+i}<br/>B:200
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function FileTypeSection() {
+  const [scanned, setScanned] = useState(false);
+  return (
+    <div className="flex flex-col md:flex-row gap-8 items-center">
+      <div className="flex-1 w-full bg-slate-900 rounded-3xl p-6 md:p-8 text-center text-white relative overflow-hidden cursor-pointer" onClick={() => setScanned(!scanned)}>
+        {!scanned ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-10">
+            <FileText size={80} className="mx-auto text-red-400 mb-4" />
+            <h3 className="text-2xl font-mono font-bold text-red-400">invoice.pdf</h3>
+            <p className="mt-4 text-slate-400 font-bold text-sm">Click to Scan with <code className="text-yellow-300">file-type</code></p>
+          </motion.div>
+        ) : (
+          <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="py-10">
+            <ImageIcon size={80} className="mx-auto text-green-400 mb-4" />
+            <h3 className="text-2xl font-mono font-bold line-through text-red-500 mb-2">invoice.pdf</h3>
+            <h3 className="text-3xl font-mono font-bold text-green-400 animate-pulse">virus.jpg</h3>
+            <div className="mt-4 bg-red-500 text-white font-bold px-4 py-2 rounded-full inline-block">MIME MISMATCH DETECTED!</div>
+          </motion.div>
+        )}
+      </div>
+      <div className="flex-1">
+        <h2 className="text-3xl font-black text-slate-800 mb-4">The Disguise Detector</h2>
+        <p className="text-lg text-slate-600 mb-4 font-medium">
+          Hackers often hide malicious images by renaming them. They take `virus.jpg` and rename it to `invoice.pdf`. 
+        </p>
+        <p className="text-lg text-slate-600 mb-6 font-medium">
+          We use the <code className="bg-slate-200 text-slate-800 px-2 rounded font-bold">file-type</code> package. It doesn't look at the `.pdf` extension. It looks at the actual <strong>Magic Bytes</strong> inside the file to figure out its true identity!
+        </p>
+        <ul className="space-y-2 font-bold text-slate-700">
+          <li>1. User uploads <span className="text-red-500">invoice.pdf</span></li>
+          <li>2. <code className="text-blue-500">file-type</code> scans the raw bytes.</li>
+          <li>3. Finds <code className="text-emerald-600">FF D8 FF E0</code> (JPEG Signature).</li>
+          <li>4. Flagged as UNSAFE! 🚨</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function ExifSection() {
+  return (
+    <div className="text-center">
+      <div className="bg-sky-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center text-sky-600 mb-6 shadow-inner">
+        <MapPin size={40} />
+      </div>
+      <h2 className="text-3xl sm:text-4xl font-black text-slate-800 mb-4 tracking-tight">The GPS Tracker (exif-parser)</h2>
+      <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-3xl mx-auto font-medium leading-relaxed">
+        When you take a picture with a smartphone, the camera invisibly attaches a receipt called <strong>EXIF Data</strong>. 
+        It contains exactly where and when the photo was taken! Our <code className="text-sky-600 bg-sky-50 px-2 rounded">exif-parser</code> package extracts this invisible text.
+      </p>
+
+      <div className="bg-white border-4 border-slate-200 rounded-3xl p-4 sm:p-8 flex flex-col md:flex-row gap-8 text-left shadow-lg">
+        <div className="flex-1 relative rounded-2xl overflow-hidden border-2 border-slate-200">
+          <img src="https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&q=80" alt="London" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
+            <span className="text-white font-bold text-sm sm:text-base flex items-center gap-2"><Camera size={18}/> Taken by iPhone 14 Pro</span>
+          </div>
+        </div>
+        <div className="flex-1 bg-slate-900 rounded-2xl p-4 sm:p-6 text-green-400 font-mono text-sm sm:text-base overflow-x-auto shadow-inner">
+          <p className="text-slate-400 mb-4">// Hidden JSON output found by exif-parser</p>
+          <p>{"{"}</p>
+          <p className="pl-4">"Make": <span className="text-yellow-300">"Apple"</span>,</p>
+          <p className="pl-4">"Model": <span className="text-yellow-300">"iPhone 14 Pro"</span>,</p>
+          <p className="pl-4">"Software": <span className="text-yellow-300">"Adobe Photoshop"</span> <span className="text-red-400 animate-pulse ml-2">← EDITED!</span>,</p>
+          <p className="pl-4">"GPSLatitude": <span className="text-blue-300">51.5072</span>,</p>
+          <p className="pl-4">"GPSLongitude": <span className="text-blue-300">-0.1276</span></p>
+          <p>{"}"}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EntropySection() {
+  const [isEncrypted, setIsEncrypted] = useState(false);
+  return (
+    <div className="flex flex-col md:flex-row gap-8 items-center">
+      <div className="flex-1 order-2 md:order-1">
+        <h2 className="text-3xl sm:text-4xl font-black text-slate-800 mb-4">The Chaos Meter (Entropy)</h2>
+        <p className="text-lg text-slate-600 mb-4 font-medium">
+          <strong>Entropy</strong> is a math word for "randomness". 
+        </p>
+        <p className="text-lg text-slate-600 mb-6 font-medium">
+          Normal pictures (like a blue sky) have low entropy because many pixels are the same blue color. <br/><br/>
+          <strong>Encrypted data</strong> (like a hidden zip file) looks like pure, chaotic TV static. The math formula outputs a score from 0 to 8. If the score is near 8.0, it's dangerously random!
+        </p>
+        <button 
+          onClick={() => setIsEncrypted(!isEncrypted)}
+          className={`px-6 py-3 rounded-xl font-bold text-white transition-colors w-full sm:w-auto shadow-lg ${isEncrypted ? 'bg-red-500 hover:bg-red-600' : 'bg-sky-500 hover:bg-sky-600'}`}
+        >
+          {isEncrypted ? "Show Normal Image" : "Inject Encrypted Virus! 🐛"}
+        </button>
+      </div>
+      <div className="flex-1 w-full order-1 md:order-2">
+        <div className="bg-slate-100 rounded-3xl p-6 border-4 border-slate-200 text-center shadow-inner">
+          <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-4 border-2 border-white shadow-lg">
+            {!isEncrypted ? (
+              <div className="w-full h-full bg-gradient-to-br from-sky-300 to-blue-500 flex items-center justify-center text-white/50 text-xl font-black">
+                Smooth Sky
+              </div>
+            ) : (
+              <div className="w-full h-full flex flex-wrap opacity-80" style={{ background: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}>
+              </div>
+            )}
+          </div>
+          <p className="text-lg font-bold text-slate-500 uppercase tracking-wider mb-2">Calculated Entropy Score:</p>
+          {!isEncrypted ? (
+            <p className="text-4xl font-black text-green-500">4.12 / 8.0 <span className="text-sm block mt-1">SAFE (Predictable)</span></p>
+          ) : (
+            <p className="text-4xl font-black text-red-500 animate-pulse">7.99 / 8.0 <span className="text-sm block mt-1 text-red-600">UNSAFE (Highly Chaotic!)</span></p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LsbSection() {
+  const [decoded, setDecoded] = useState(false);
+  return (
+    <div className="text-center">
+      <h2 className="text-3xl sm:text-4xl font-black text-slate-800 mb-6">The Secret Decoder (LSB)</h2>
+      <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto font-medium">
+        LSB stands for <strong>Least Significant Bit</strong>. Remember when <code className="text-purple-600 font-bold">sharp</code> gave us pixel numbers from 0 to 255? 
+        Hackers change the very <em>last binary digit</em> of the Red color to hide text. The human eye cannot see the color difference!
+      </p>
+      
+      <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="bg-red-50 border-4 border-red-200 rounded-3xl p-6 shadow-sm">
+          <div className="w-16 h-16 bg-[#ff0000] rounded-xl mx-auto mb-4 border-2 border-red-300 shadow"></div>
+          <p className="font-bold text-red-800 mb-2">Original Pixel (Red)</p>
+          <p className="font-mono text-2xl text-red-600 mb-2">255</p>
+          <p className="font-mono text-sm bg-white p-2 rounded border border-red-100 text-slate-600">Binary: 1111111<strong className="text-xl text-green-500 bg-green-100 px-1 rounded">1</strong></p>
+        </div>
+        
+        <div className="bg-red-50 border-4 border-red-200 rounded-3xl p-6 shadow-sm relative">
+          <div className="w-16 h-16 bg-[#fe0000] rounded-xl mx-auto mb-4 border-2 border-red-300 shadow"></div>
+          <p className="font-bold text-red-800 mb-2">Hacked Pixel (Red)</p>
+          <p className="font-mono text-2xl text-red-600 mb-2">254</p>
+          <p className="font-mono text-sm bg-white p-2 rounded border border-red-100 text-slate-600">Binary: 1111111<strong className="text-xl text-red-500 bg-red-100 px-1 rounded">0</strong></p>
+          
+          <div className="absolute -top-4 right-4 bg-yellow-400 text-yellow-900 text-xs font-black px-3 py-1 rounded-full shadow-lg rotate-12">
+            Looks EXACTLY the same!
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <button 
+          onClick={() => setDecoded(true)}
+          disabled={decoded}
+          className="px-8 py-4 bg-slate-800 text-white rounded-2xl font-black shadow-lg hover:bg-slate-700 disabled:opacity-50 transition-all active:scale-95"
+        >
+          {decoded ? "Extracting Bits..." : "Extract All Last Bits! 🔎"}
+        </button>
+        
+        <AnimatePresence>
+          {decoded && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              className="mt-6 bg-green-100 border-4 border-green-500 p-6 rounded-3xl inline-block max-w-full overflow-hidden shadow-xl"
+            >
+              <p className="text-green-800 font-bold mb-2">Hidden Binary Assembled:</p>
+              <p className="font-mono text-sm sm:text-base text-slate-600 break-all bg-white p-4 rounded-xl border border-green-200">
+                01001000 01100101 01101100 01101100 01101111 <br/>
+                <motion.span 
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
+                  className="block mt-4 text-3xl sm:text-4xl font-black text-red-600"
+                >
+                  "Hello Zana!"
+                </motion.span>
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function HashSection() {
+  const [text, setText] = useState("photo.jpg");
+
+  // A fake hash generator for visual effect
+  const generateFakeHash = (input: string) => {
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) hash = (hash << 5) - hash + input.charCodeAt(i);
+    return Math.abs(hash).toString(16).padEnd(64, 'a4b8c9d2e1f3a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0').substring(0, 64);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="bg-pink-500 p-3 rounded-2xl text-white shadow-inner">
+          <Fingerprint size={32} />
+        </div>
+        <h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">The Fingerprint (Hash)</h2>
+      </div>
+      
+      <div className="grid lg:grid-cols-2 gap-8">
+        <div>
+          <p className="text-lg text-slate-600 mb-4 font-medium">
+            A <strong>Hash</strong> is a unique ID for a file—like a human fingerprint. 
+            If two files are <em>exactly</em> the same, their hash is identical.
+          </p>
+          <p className="text-lg text-slate-600 mb-6 font-medium">
+            <strong>SHA-256</strong> is the mathematical formula used to make this fingerprint. It always creates a 64-character string.
+          </p>
+          <ul className="space-y-3 font-bold text-slate-700 bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 shadow-sm">
+            <li className="flex items-center gap-3"><span className="text-green-500 text-2xl">✅</span> Same file = Same hash ALWAYS!</li>
+            <li className="flex items-center gap-3"><span className="text-red-500 text-2xl">💥</span> Change 1 byte = Completely different hash!</li>
+            <li className="flex items-center gap-3"><span className="text-red-500 text-2xl">❌</span> You cannot reverse a hash back to the file.</li>
+          </ul>
+        </div>
+
+        <div className="bg-sky-50 rounded-3xl p-6 border-4 border-sky-100 shadow-sm">
+          <p className="font-bold text-sky-800 mb-2 uppercase text-sm tracking-wider">Try it yourself!</p>
+          <p className="text-sm text-sky-600 mb-4">Type to change the file. Watch the fingerprint change!</p>
+          
+          <input 
+            type="text" 
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="w-full text-xl p-4 rounded-xl border-2 border-sky-200 mb-6 font-mono focus:outline-none focus:border-sky-500 transition-colors shadow-inner"
+            placeholder="Type something..."
+          />
+          
+          <p className="font-bold text-slate-400 mb-2 text-sm uppercase">SHA-256 Fingerprint:</p>
+          <motion.div 
+            key={text}
+            initial={{ scale: 1.05, backgroundColor: "#fdf2f8" }}
+            animate={{ scale: 1, backgroundColor: "#ffffff" }}
+            className="p-4 bg-white rounded-xl border-2 border-slate-200 font-mono text-xs sm:text-sm break-all text-pink-600 font-bold shadow-sm"
+          >
+            {text ? generateFakeHash(text) : "..."}
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CryptoSection() {
+  return (
+    <div className="text-center">
+      <motion.div 
+        animate={{ y: [-5, 5, -5] }} 
+        transition={{ duration: 2, repeat: Infinity }}
+        className="bg-indigo-500 w-20 h-20 mx-auto rounded-3xl flex items-center justify-center text-white mb-6 shadow-lg shadow-indigo-200 rotate-12"
+      >
+        <Calculator size={40} />
+      </motion.div>
+      <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-4 tracking-tight">The Math Wizard: crypto</h2>
+      <p className="text-lg md:text-xl text-slate-600 mb-8 max-w-2xl mx-auto font-medium">
+        <code>crypto</code> is a built-in Node.js toolbox. You don't install it; it comes for free! It only does <strong>two small math jobs</strong> in our project:
+      </p>
+
+      <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto text-left">
+        <div className="bg-white p-6 rounded-3xl border-4 border-indigo-100 shadow-sm relative overflow-hidden group hover:border-indigo-300 transition-colors">
+          <div className="absolute top-0 right-0 bg-indigo-100 px-4 py-1 rounded-bl-xl font-bold text-indigo-800 text-sm">Job 1</div>
+          <h3 className="text-xl font-black text-slate-800 mb-2 mt-4">Calculate the Hash</h3>
+          <p className="text-slate-600 text-sm mb-4">Feed it bytes, it returns the SHA-256 fingerprint.</p>
+          <code className="block bg-slate-800 text-green-400 p-3 sm:p-4 rounded-xl text-xs sm:text-sm font-mono overflow-x-auto shadow-inner">
+            crypto.createHash("sha256")<br/>
+            .update(buffer)<br/>
+            .digest("hex")
+          </code>
+        </div>
+        <div className="bg-white p-6 rounded-3xl border-4 border-teal-100 shadow-sm relative overflow-hidden group hover:border-teal-300 transition-colors">
+          <div className="absolute top-0 right-0 bg-teal-100 px-4 py-1 rounded-bl-xl font-bold text-teal-800 text-sm">Job 2</div>
+          <h3 className="text-xl font-black text-slate-800 mb-2 mt-4">Generate Scan ID</h3>
+          <p className="text-slate-600 text-sm mb-4">Creates random characters for the report ticket.</p>
+          <code className="block bg-slate-800 text-green-400 p-3 sm:p-4 rounded-xl text-xs sm:text-sm font-mono overflow-x-auto shadow-inner">
+            crypto.randomBytes(4)<br/>
+            .toString("hex")<br/>
+            .toUpperCase()
+          </code>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HexDumpSection() {
+  const [showHex, setShowHex] = useState(false);
+  
+  return (
+    <div className="flex flex-col md:flex-row gap-8 items-center">
+      <div className="flex-1 order-2 md:order-1">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="bg-emerald-500 p-3 rounded-2xl text-white shadow-inner">
+            <Eye size={32} />
+          </div>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">X-Ray Vision (Hex Dump)</h2>
+        </div>
+        <p className="text-lg text-slate-600 mb-4 font-medium">
+          Every file on your computer is just numbers (0-255). We show these as <strong>Hexadecimal</strong> because it's shorter. 
+        </p>
+        <p className="text-slate-600 mb-6 font-medium">
+          A JPEG always starts with magical bytes: <code className="font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">FF D8 FF E0</code>. 
+          The hex dump is like an X-ray. It doesn't <em>scan</em> anything, it just lets detectives manually look for hidden text after the image ends!
+        </p>
+        <button 
+          onClick={() => setShowHex(!showHex)}
+          className="w-full sm:w-auto px-6 py-4 bg-slate-800 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-700 transition-colors shadow-lg"
+        >
+          {showHex ? "Turn Off X-Ray" : "Turn On X-Ray Vision ☠️"}
+        </button>
+      </div>
+
+      <div className="flex-1 w-full order-1 md:order-2 bg-slate-900 rounded-3xl p-4 sm:p-6 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-8 bg-slate-800 flex items-center px-4">
+          <div className="flex gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          </div>
+          <p className="ml-4 text-xs font-mono text-slate-400">photo.jpg</p>
+        </div>
+        
+        <div className="mt-6 h-48 md:h-64 overflow-hidden relative">
+          <AnimatePresence mode="wait">
+            {!showHex ? (
+              <motion.div 
+                key="img"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="w-full h-full flex items-center justify-center bg-slate-800 rounded-xl border border-slate-700"
+              >
+                <ImageIcon size={64} className="text-slate-500" />
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="hex"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="w-full h-full bg-black rounded-xl p-3 sm:p-4 font-mono text-[8px] sm:text-[10px] md:text-xs text-green-400 leading-relaxed overflow-y-auto"
+              >
+                <span className="text-yellow-300 font-bold">FF D8 FF E0</span> 00 10 4A 46 49 46 00 01 01 01 00 60<br/>
+                00 60 00 00 FF DB 00 43 00 03 02 02 03 02 02 03<br/>
+                03 03 03 04 03 03 04 05 08 05 05 04 04 05 0A 07<br/>
+                07 06 08 0C 0A 0C 0C 0B 0A 0B 0B 0D 0E 12 10 0D<br/>
+                ...<br/>
+                <span className="text-red-400 font-bold mt-2 block break-all">53 74 65 67 20 50 61 79 6C 6F 61 64 21</span>
+                <span className="text-slate-500">// Wait, that spells "Steg Payload!"</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CheatSheetSection() {
+  const data = [
+    { q: "Tech Stack", a: "Next.js, TypeScript, Tailwind", bg: "bg-blue-100 text-blue-800" },
+    { q: "JSON", a: "How Backend talks to Frontend", bg: "bg-sky-100 text-sky-800" },
+    { q: "Who converts image to RGB?", a: "sharp", bg: "bg-purple-100 text-purple-800" },
+    { q: "Who calculates the hash?", a: "crypto (SHA-256)", bg: "bg-indigo-100 text-indigo-800" },
+    { q: "Who finds hidden LSB messages?", a: "LsbAnalyzer module", bg: "bg-red-100 text-red-800" },
+    { q: "Who finds fake extensions?", a: "file-type package", bg: "bg-emerald-100 text-emerald-800" },
+    { q: "Who generates the Scan ID?", a: "crypto.randomBytes()", bg: "bg-amber-100 text-amber-800" },
+    { q: "Who extracts GPS data?", a: "exif-parser", bg: "bg-pink-100 text-pink-800" },
+  ];
+
+  return (
+    <div>
+      <div className="grid sm:grid-cols-2 gap-4">
+        {data.map((item, i) => (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}
+            key={i} className={`p-4 sm:p-6 rounded-2xl border-2 border-transparent hover:border-slate-300 transition-all ${item.bg} bg-opacity-50`}
+          >
+            <p className="text-xs sm:text-sm uppercase tracking-wider mb-2 opacity-80 font-bold">{item.q}</p>
+            <p className="text-lg sm:text-2xl font-black leading-tight">{item.a}</p>
+          </motion.div>
+        ))}
+      </div>
+      <div className="mt-8 text-center bg-gradient-to-r from-emerald-400 to-teal-500 text-white p-8 rounded-3xl border-4 border-emerald-200 font-black text-2xl sm:text-3xl shadow-xl hover:-translate-y-2 transition-transform cursor-pointer">
+        You are 100% ready to rock the presentation! 🎉
+      </div>
+    </div>
+  );
+}
