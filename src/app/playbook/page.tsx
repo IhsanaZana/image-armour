@@ -22,10 +22,12 @@ export default function PlaybookPage() {
     { id: "exif", title: "7. The GPS Tracker (exif-parser) 🛰️" },
     { id: "entropy", title: "8. The Chaos Meter (Entropy) 🌪️" },
     { id: "lsb", title: "9. The Secret Decoder (LSB) 🤫" },
-    { id: "hash", title: "10. The Magic Fingerprint (SHA-256) ✋" },
-    { id: "crypto", title: "11. The Math Wizard (crypto) 🧙‍♂️" },
-    { id: "hexdump", title: "12. X-Ray Vision (Hex Dump) 🦴" },
-    { id: "cheat-sheet", title: "13. The Master Cheat Sheet 📝" }
+    { id: "lsb-edge-cases", title: "10. The Smart Detective (LSB Edge Cases) 🧠" },
+    { id: "extraction-strategies", title: "11. The 4 Master Keys (Extraction) 🗝️" },
+    { id: "hash", title: "12. The Magic Fingerprint (SHA-256) ✋" },
+    { id: "crypto", title: "13. The Math Wizard (crypto) 🧙‍♂️" },
+    { id: "hexdump", title: "14. X-Ray Vision (Hex Dump) 🦴" },
+    { id: "cheat-sheet", title: "15. The Master Cheat Sheet 📝" }
   ];
 
   const nextChapter = () => {
@@ -88,10 +90,12 @@ export default function PlaybookPage() {
             {activeChapter === 7 && <ExifSection />}
             {activeChapter === 8 && <EntropySection />}
             {activeChapter === 9 && <LsbSection />}
-            {activeChapter === 10 && <HashSection />}
-            {activeChapter === 11 && <CryptoSection />}
-            {activeChapter === 12 && <HexDumpSection />}
-            {activeChapter === 13 && <CheatSheetSection />}
+            {activeChapter === 10 && <LsbEdgeCasesSection />}
+            {activeChapter === 11 && <ExtractionStrategiesSection />}
+            {activeChapter === 12 && <HashSection />}
+            {activeChapter === 13 && <CryptoSection />}
+            {activeChapter === 14 && <HexDumpSection />}
+            {activeChapter === 15 && <CheatSheetSection />}
           </motion.div>
         </AnimatePresence>
 
@@ -791,6 +795,128 @@ function CheatSheetSection() {
       </div>
       <div className="mt-8 text-center bg-gradient-to-r from-emerald-400 to-teal-500 text-white p-8 rounded-3xl border-4 border-emerald-200 font-black text-2xl sm:text-3xl shadow-xl hover:-translate-y-2 transition-transform cursor-pointer">
         You are 100% ready to rock the presentation! 🎉
+      </div>
+    </div>
+  );
+}
+
+function LsbEdgeCasesSection() {
+  const [scanTarget, setScanTarget] = useState<"bricks" | "glass">("bricks");
+  const [libraryBooks, setLibraryBooks] = useState(2);
+  const [monkeyText, setMonkeyText] = useState("");
+
+  const typeRandom = () => {
+    const noise = ["XQ ZZZ Q", "AAA BBB", "H7L0 Z!N@", "Hello Zana!"][Math.floor(Math.random() * 4)];
+    setMonkeyText(noise);
+  };
+
+  return (
+    <div>
+      <h2 className="text-3xl sm:text-4xl font-black text-slate-800 mb-6 text-center">The Smart Detective 🧠</h2>
+      <p className="text-lg text-slate-600 mb-8 max-w-3xl mx-auto font-medium text-center">
+        Our <code className="bg-slate-200 px-2 rounded text-indigo-700">LsbAnalyzer</code> uses real-world logic to prevent crashes and false alarms. Let's look at the analogies!
+      </p>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* 1. Alpha Channel */}
+        <div className="bg-indigo-50 border-4 border-indigo-200 rounded-3xl p-6 shadow-sm flex flex-col">
+          <div className="bg-indigo-500 w-12 h-12 rounded-2xl flex items-center justify-center text-white mb-4 shadow">
+            <Eye size={24} />
+          </div>
+          <h3 className="text-xl font-black text-indigo-900 mb-2">1. The Invisible Glass</h3>
+          <p className="text-sm text-indigo-800 font-medium leading-relaxed mb-4">
+            If someone hides a secret letter in a wall (RGB pixels), they won't hide it in a completely see-through glass window (Alpha Transparency). Scanning the glass gives us nothing but static!
+          </p>
+          <div className="mt-auto bg-white p-4 rounded-2xl border-2 border-indigo-100 text-center">
+            <div className="flex justify-center gap-2 mb-2">
+              <button onClick={() => setScanTarget("bricks")} className={`px-3 py-1 rounded font-bold text-xs ${scanTarget === 'bricks' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>Scan Bricks</button>
+              <button onClick={() => setScanTarget("glass")} className={`px-3 py-1 rounded font-bold text-xs ${scanTarget === 'glass' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}`}>Scan Glass</button>
+            </div>
+            {scanTarget === "bricks" ? (
+              <p className="text-green-600 font-bold text-sm">✅ Found mixed data!</p>
+            ) : (
+              <p className="text-red-500 font-bold text-sm">❌ False alarm (All 1111s!)</p>
+            )}
+          </div>
+        </div>
+
+        {/* 2. Memory Cap */}
+        <div className="bg-rose-50 border-4 border-rose-200 rounded-3xl p-6 shadow-sm flex flex-col">
+          <div className="bg-rose-500 w-12 h-12 rounded-2xl flex items-center justify-center text-white mb-4 shadow">
+            <Database size={24} />
+          </div>
+          <h3 className="text-xl font-black text-rose-900 mb-2">2. The Tired Librarian</h3>
+          <p className="text-sm text-rose-800 font-medium leading-relaxed mb-4">
+            If a hacker uploads a 50 Megapixel RAW photo, it's like dropping 50 million books on a single librarian. To stop the server from crashing, the librarian stops reading after 2 Megabytes.
+          </p>
+          <div className="mt-auto bg-white p-4 rounded-2xl border-2 border-rose-100 text-center">
+            <p className="font-bold text-rose-900 mb-2 text-sm">{libraryBooks} MB to read</p>
+            <input type="range" min="1" max="50" value={libraryBooks} onChange={(e) => setLibraryBooks(Number(e.target.value))} className="w-full mb-2 accent-rose-500" />
+            {libraryBooks <= 2 ? (
+              <p className="text-green-600 font-bold text-sm">😎 Librarian is happy!</p>
+            ) : (
+              <p className="text-red-500 font-bold text-sm animate-pulse">🥵 Server Crashing!</p>
+            )}
+          </div>
+        </div>
+
+        {/* 3. NLP Filter */}
+        <div className="bg-teal-50 border-4 border-teal-200 rounded-3xl p-6 shadow-sm flex flex-col">
+          <div className="bg-teal-500 w-12 h-12 rounded-2xl flex items-center justify-center text-white mb-4 shadow">
+            <ShieldAlert size={24} />
+          </div>
+          <h3 className="text-xl font-black text-teal-900 mb-2">3. The Monkey Typist</h3>
+          <p className="text-sm text-teal-800 font-medium leading-relaxed mb-4">
+            If a monkey hits a keyboard randomly, it might type "AAA XYY". Our NLP filter checks for vowels and "Shannon Entropy" to prove it's a real human sentence, rejecting the monkey noise!
+          </p>
+          <div className="mt-auto bg-white p-4 rounded-2xl border-2 border-teal-100 text-center">
+            <button onClick={typeRandom} className="bg-teal-500 text-white font-bold px-3 py-1 rounded text-xs mb-2 hover:bg-teal-600">Monkey Type!</button>
+            <div className="h-12 flex items-center justify-center bg-slate-100 rounded font-mono text-sm font-bold border border-slate-200">
+              {monkeyText === "" ? "..." : monkeyText}
+            </div>
+            {monkeyText && (
+              <p className={`mt-2 text-xs font-bold ${monkeyText === "Hello Zana!" ? "text-green-600" : "text-red-500"}`}>
+                {monkeyText === "Hello Zana!" ? "✅ Valid Human Text" : "❌ Rejected Noise"}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExtractionStrategiesSection() {
+  const keys = [
+    { name: '1. The Secret Handshake', desc: 'Magic Bytes (0x53 74 65 67). A spy walks up and does a very specific secret handshake. We instantly know they used the "Devglan" steganography tool.', icon: <Key/>, color: 'text-amber-500 bg-amber-50 border-amber-200' },
+    { name: '2. The Backpack Tag', desc: 'Length Prefixing. A messenger hands us a backpack with a tag that says "Contains exactly 42 letters". We don\'t have to guess; we just read 42 letters and stop.', icon: <Box/>, color: 'text-blue-500 bg-blue-50 border-blue-200' },
+    { name: '3. The Stop Sign (0x00)', desc: 'Null-Terminated. We are driving down a road of text reading "H-e-l-l-o-Z-a-n-a". Suddenly we hit a giant 0x00 Stop Sign byte. That means the message is over!', icon: <MapPin/>, color: 'text-rose-500 bg-rose-50 border-rose-200' },
+    { name: '4. The Brute Force Sieve', desc: 'Regex Fallback. We pour a giant bucket of binary dirt through a sieve. All the dirt falls through, but the shiny gold nuggets (human words) get caught.', icon: <Search/>, color: 'text-emerald-500 bg-emerald-50 border-emerald-200' }
+  ];
+
+  return (
+    <div>
+      <h2 className="text-3xl sm:text-4xl font-black text-slate-800 mb-6 text-center">The 4 Extraction Master Keys 🗝️</h2>
+      <p className="text-lg text-slate-600 mb-10 max-w-3xl mx-auto font-medium text-center">
+        Once we pull the binary bits out of the pixels, it just looks like endless 1s and 0s. 
+        How do we know where the secret message starts and ends? We use these 4 real-world strategies!
+      </p>
+
+      <div className="space-y-4 max-w-4xl mx-auto">
+        {keys.map((key, i) => (
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+            key={i} className={`p-4 sm:p-6 rounded-2xl border-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-sm ${key.color}`}
+          >
+            <div className="bg-white p-3 sm:p-4 rounded-full shadow flex-shrink-0">
+              {React.cloneElement(key.icon as React.ReactElement<any>, { size: 32 })}
+            </div>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-black mb-1">{key.name}</h3>
+              <p className="font-medium text-sm sm:text-base opacity-90">{key.desc}</p>
+            </div>
+          </motion.div>
+        ))}
       </div>
     </div>
   );
