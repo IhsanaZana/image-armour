@@ -27,7 +27,8 @@ export default function PlaybookPage() {
     { id: "hash", title: "12. The Magic Fingerprint (SHA-256) ✋" },
     { id: "crypto", title: "13. The Math Wizard (crypto) 🧙‍♂️" },
     { id: "hexdump", title: "14. X-Ray Vision (Hex Dump) 🦴" },
-    { id: "cheat-sheet", title: "15. The Master Cheat Sheet 📝" }
+    { id: "cheat-sheet", title: "15. The Master Cheat Sheet 📝" },
+    { id: "all-edge-cases", title: "16. The 27 Master Defenses (All Edge Cases) 🛡️" }
   ];
 
   const nextChapter = () => {
@@ -57,9 +58,17 @@ export default function PlaybookPage() {
           </div>
           <h1 className="text-xl md:text-2xl font-extrabold text-sky-600 tracking-tight text-center">Image Armour Playbook</h1>
         </div>
-        <div className="text-xs md:text-sm font-bold bg-sky-100 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sky-700 flex items-center gap-2">
-          <span>Chapter {activeChapter} of {chapters.length - 1}</span>
-          <span className="hidden lg:inline text-sky-400 font-normal">| Use ← → keys</span>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setActiveChapter(16)} 
+            className="bg-rose-500 hover:bg-rose-600 text-white font-black px-4 py-2 rounded-xl shadow-md transition-transform hover:-translate-y-1 flex items-center gap-2"
+          >
+            <ShieldAlert size={18} /> Edgecases
+          </button>
+          <div className="text-xs md:text-sm font-bold bg-sky-100 px-3 md:px-4 py-1.5 md:py-2 rounded-full text-sky-700 flex items-center gap-2">
+            <span>Chapter {activeChapter} of {chapters.length - 1}</span>
+            <span className="hidden lg:inline text-sky-400 font-normal">| Use ← → keys</span>
+          </div>
         </div>
       </header>
 
@@ -96,6 +105,7 @@ export default function PlaybookPage() {
             {activeChapter === 13 && <CryptoSection />}
             {activeChapter === 14 && <HexDumpSection />}
             {activeChapter === 15 && <CheatSheetSection />}
+            {activeChapter === 16 && <AllEdgeCasesSection />}
           </motion.div>
         </AnimatePresence>
 
@@ -917,6 +927,354 @@ function ExtractionStrategiesSection() {
             </div>
           </motion.div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function AllEdgeCasesSection() {
+  const [activeModule, setActiveModule] = useState(0);
+  const [demoState, setDemoState] = useState<any>({});
+
+  const triggerDemo = (modKey: string | number, action: string) => {
+    setDemoState({ ...demoState, [modKey]: action });
+    setTimeout(() => {
+      setDemoState((prev: any) => ({ ...prev, [modKey]: action + "_done" }));
+    }, 800);
+  };
+
+  const modules = [
+    {
+      name: "MimeAnalyzer",
+      icon: "🕵️",
+      package: "file-type",
+      count: 3,
+      desc: "Checks the binary magic bytes instead of the file extension.",
+      demo: {
+        title: "The Spy Mismatch Demo",
+        desc: "A hacker renames a virus.exe to cute_cat.jpg. How do we catch it?",
+        button: "Simulate Upload",
+        action: "upload",
+        render: (state: string) => (
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 text-sm font-mono mt-2">
+            {!state && <div className="text-slate-500">Waiting for file upload...</div>}
+            {state === "upload" && <div className="text-sky-400 animate-pulse">Running file-type scanner...</div>}
+            {state === "upload_done" && (
+              <div className="text-rose-400">
+                <p>➔ Extension: <span className="text-white">.jpg</span></p>
+                <p>➔ Magic Bytes: <span className="text-white">4D 5A (MZ)</span></p>
+                <p className="font-bold mt-2">❌ FAIL: file-type detected this is actually an Executable (.exe)!</p>
+              </div>
+            )}
+          </div>
+        )
+      },
+      cases: [
+        { title: "1. The Spy Mismatch", text: "If a hacker renames 'virus.exe' to 'invoice.jpg', we catch it by reading the internal magic bytes instead of trusting the file extension." },
+        { title: "2. The Safe Twins", text: "We safely allow '.jpg' and '.jpeg' to be treated as identical twins without throwing false alarms." },
+        { title: "3. The Unknown Blob", text: "If a completely unrecognised binary blob is uploaded, it handles it gracefully instead of crashing the parser." }
+      ]
+    },
+    {
+      name: "AppendedDataAnalyzer",
+      icon: "📦",
+      package: "Native Node.js Buffer",
+      count: 3,
+      desc: "Hunts for malicious scripts smuggled behind the image.",
+      demo: {
+        title: "The Threat Scanner Demo",
+        desc: "Scan the binary Buffer for the JPEG End-Of-File (EOF) marker 'FF D9'.",
+        button: "Scan Buffer",
+        action: "scan",
+        render: (state: string) => (
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 text-sm font-mono mt-2">
+            {!state && <div className="text-slate-500">Buffer: [FF D8 ... FF D9]</div>}
+            {state === "scan" && <div className="text-sky-400 animate-pulse">Scanning past FF D9...</div>}
+            {state === "scan_done" && (
+              <div className="text-amber-400">
+                <p>➔ EOF found at offset: <span className="text-white">0x2A4F</span></p>
+                <p>➔ Extra bytes found: <span className="text-white">124 bytes</span></p>
+                <p>➔ Content: <span className="text-rose-400">#!/bin/bash curl -s http...</span></p>
+                <p className="font-bold mt-2 text-rose-500">⚠️ ALERT: Linux Shell Script Appended!</p>
+              </div>
+            )}
+          </div>
+        )
+      },
+      cases: [
+        { title: "1. The Format Rule", text: "Only scans JPEGs, because PNGs and WebPs handle End-Of-File (EOF) markers differently." },
+        { title: "2. The Harmless Backpack", text: "Safely ignores tiny data blobs (≤ 50 bytes) because some normal cameras add harmless padding." },
+        { title: "3. The Threat Scanner", text: "Automatically fingerprints WHAT the appended data is (Linux Shell scripts, Python, Base64, ZIP) instead of just saying 'Unknown Data'." }
+      ]
+    },
+    {
+      name: "EntropyAnalyzer",
+      icon: "🌪️",
+      package: "sharp + Custom Math",
+      count: 4,
+      desc: "Calculates mathematical randomness to find encrypted Zip files.",
+      demo: {
+        title: "The Static Radar Demo",
+        desc: "Analyze pixel randomness. Encrypted files look like perfect white noise.",
+        button: "Calculate Shannon Entropy",
+        action: "math",
+        render: (state: string) => (
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 text-sm font-mono mt-2">
+            {!state && <div className="text-slate-500">Waiting to process pixels...</div>}
+            {state === "math" && <div className="text-sky-400 animate-pulse">sharp resizing to 256x256... calculating logs...</div>}
+            {state === "math_done" && (
+              <div className="text-white">
+                <p>➔ Pixel Array Size: 65,536</p>
+                <p>➔ Entropy Formula: <span className="text-emerald-400">-Σ(p * log2(p))</span></p>
+                <p className="font-bold mt-2 text-rose-500 text-lg">Result: 7.98 bits/pixel</p>
+                <p className="text-rose-400">⚠️ EXTREME ENTROPY: This is an encrypted AES payload!</p>
+              </div>
+            )}
+          </div>
+        )
+      },
+      cases: [
+        { title: "1. The Shrink Ray", text: "Resizes massive 50MP images to 256x256 using sharp before doing math, so the server CPU doesn't freeze." },
+        { title: "2. The Blank Canvas (< 1.0)", text: "Identifies completely blank test images and flags them as 'Very Low Complexity'." },
+        { title: "3. The Static Radar (> 7.95)", text: "Identifies perfectly random static, which is a massive red flag for AES-encrypted payload blobs." },
+        { title: "4. The Broken Glass", text: "If the hacker destroyed the image headers and 'sharp' completely fails to open it, we catch the crash gracefully and flag it as a 'sharp-fail'." }
+      ]
+    },
+    {
+      name: "ExifAnalyzer",
+      icon: "🛰️",
+      package: "exif-parser",
+      count: 4,
+      desc: "Extracts invisible metadata embedded inside the photo.",
+      demo: {
+        title: "The Privacy Alarm Demo",
+        desc: "Extract raw GPS coordinates hidden inside the JFIF segment.",
+        button: "Run exif-parser",
+        action: "parse",
+        render: (state: string) => (
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 text-sm font-mono mt-2">
+            {!state && <div className="text-slate-500">Ready to parse metadata block...</div>}
+            {state === "parse" && <div className="text-sky-400 animate-pulse">Reading EXIF APP1 tags...</div>}
+            {state === "parse_done" && (
+              <div className="text-sky-300">
+                <p>➔ Make: Apple</p>
+                <p>➔ Model: iPhone 14 Pro</p>
+                <p className="text-rose-400 mt-2">➔ GPSLatitude: 40.7128° N</p>
+                <p className="text-rose-400">➔ GPSLongitude: -74.0060° W</p>
+                <p className="font-bold mt-2 text-rose-500">⚠️ PRIVACY FAIL: Exact location exposed!</p>
+              </div>
+            )}
+          </div>
+        )
+      },
+      cases: [
+        { title: "1. The Social Media Ghost", text: "Gracefully handles files with ZERO metadata (common when downloading from WhatsApp, which strips metadata)." },
+        { title: "2. The Privacy Alarm", text: "Specifically extracts GPS Latitude/Longitude and triggers a massive privacy fail warning." },
+        { title: "3. The Hex Editor Catch", text: "If the metadata area is broken/corrupted, it flags it as 'exif-corrupt', meaning a human manually tampered with it." },
+        { title: "4. The Photoshop Radar", text: "Hunts the 'Software' tag for professional suites (Photoshop, Canva, Gimp) to prove the image is not a raw camera photo." }
+      ]
+    },
+    {
+      name: "LsbAnalyzer",
+      icon: "🧠",
+      package: "sharp + Native Buffers + Regex",
+      count: 13,
+      desc: "Extracts secret text hidden directly inside the pixel colors.",
+      demo: {
+        title: "The NLP Monkey Filter Demo",
+        desc: "Extracts bits using sharp, then uses Natural Language Processing to reject static.",
+        button: "Extract & Filter Bits",
+        action: "lsb",
+        render: (state: string) => (
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 text-sm font-mono mt-2">
+            {!state && <div className="text-slate-500">Pixels loaded via sharp...</div>}
+            {state === "lsb" && <div className="text-sky-400 animate-pulse">Skipping Alpha Channel... Extracting RGB LSBs...</div>}
+            {state === "lsb_done" && (
+              <div className="text-amber-400">
+                <p>➔ Extracted binary: 01001000 01100101...</p>
+                <p>➔ Decoded String 1: <span className="text-slate-500">"XQ ZZZ Q"</span> <span className="text-red-500">➔ Rejected (0 vowels)</span></p>
+                <p>➔ Decoded String 2: <span className="text-emerald-400">"Hello Zana!"</span> <span className="text-emerald-500">➔ ACCEPTED (Vowels + High Entropy)</span></p>
+                <p className="font-bold mt-2 text-emerald-500">✅ STEGO FOUND: Payload extracted safely!</p>
+              </div>
+            )}
+          </div>
+        )
+      },
+      cases: [
+        { 
+          title: "1. The Duplicate Guard", text: "Prevents re-running the same scan to avoid printing duplicate warnings on the report.",
+          action: "c1", button: "Run Twice", 
+          render: (s:string) => !s ? null : s==="c1" ? <div className="text-sky-400 animate-pulse mt-2">Running scan...</div> : <div className="text-amber-400 mt-2">➔ Run 1: Scanned!<br/>➔ Run 2: Blocked! (Duplicate Guard Active)</div>
+        },
+        { 
+          title: "2. The Tiny Reject", text: "Ignores images too small (< 256 pixels) because they physically can't hold a payload.",
+          action: "c2", button: "Upload 16x16 Image", 
+          render: (s:string) => !s ? null : s==="c2" ? <div className="text-sky-400 animate-pulse mt-2">Counting subpixels...</div> : <div className="text-emerald-400 mt-2">➔ Found 120 pixels.<br/>➔ Minimum required: 256.<br/><span className="text-rose-400">❌ Rejected: Too small!</span></div>
+        },
+        { 
+          title: "3. The 2MB Hard Cap", text: "Stops reading after 2MB to prevent server Out-Of-Memory (OOM) crashes on huge photos.",
+          action: "c3", button: "Upload 50MP RAW", 
+          render: (s:string) => !s ? null : s==="c3" ? <div className="text-sky-400 animate-pulse mt-2">Allocating memory...</div> : <div className="text-amber-400 mt-2">➔ Image Size: 50MP.<br/>➔ Buffer capped at exactly 2,097,152 bytes.<br/><span className="text-emerald-400">✅ Server Saved!</span></div>
+        },
+        { 
+          title: "4. The 4-Stream Cascade", text: "Reads MSB/LSB bits simultaneously across channels to catch different hacker tool behaviors.",
+          action: "c4", button: "Test Hacker Tools", 
+          render: (s:string) => !s ? null : s==="c4" ? <div className="text-sky-400 animate-pulse mt-2">Checking 4 streams...</div> : <div className="text-amber-400 mt-2">➔ RGB_MSB: null<br/>➔ RGB_LSB: null<br/>➔ RGBA_MSB: null<br/>➔ RGBA_LSB: <span className="text-emerald-400">Found "Secret!"</span></div>
+        },
+        { 
+          title: "5. The Glass Window", text: "Ignores the Alpha (Transparency) channel to prevent massive false alarms from empty static.",
+          action: "c5", button: "Scan Alpha", 
+          render: (s:string) => !s ? null : s==="c5" ? <div className="text-sky-400 animate-pulse mt-2">Scanning 0xFF bytes...</div> : <div className="text-amber-400 mt-2">➔ Alpha scanned: 0xFFFF...<br/><span className="text-emerald-400">✅ Skipped to prevent false alarm</span></div>
+        },
+        { 
+          title: "6. The Gibberish Gate", text: "Enforces that >90% of extracted characters must be printable (no alien symbols).",
+          action: "c6", button: "Decode Gibberish", 
+          render: (s:string) => !s ? null : s==="c6" ? <div className="text-sky-400 animate-pulse mt-2">Calculating printable ratio...</div> : <div className="text-amber-400 mt-2">➔ String: "\x00\x1f\x7f\ufffd"<br/>➔ Printable: 10%<br/><span className="text-rose-400">❌ Rejected.</span></div>
+        },
+        { 
+          title: "7. The Monkey NLP Filter", text: "Uses Shannon Entropy and vowel ratios to reject random keyboard-smash noise.",
+          action: "c7", button: "Monkey Type", 
+          render: (s:string) => !s ? null : s==="c7" ? <div className="text-sky-400 animate-pulse mt-2">Running NLP filters...</div> : <div className="text-amber-400 mt-2">➔ String: "HDFH JKDF"<br/>➔ Vowels: 0<br/><span className="text-rose-400">❌ Rejected.</span></div>
+        },
+        { 
+          title: "8. The Secret Handshake", text: "Hunts for exact 'Steg' magic bytes.",
+          action: "c8", button: "Check Devglan", 
+          render: (s:string) => !s ? null : s==="c8" ? <div className="text-sky-400 animate-pulse mt-2">Hunting magic bytes...</div> : <div className="text-emerald-400 mt-2">➔ Found Hex: 53 74 65 67<br/>➔ "Steg" Header verified.</div>
+        },
+        { 
+          title: "9. The Backpack Tag", text: "Catches 32-bit big/little-endian length prefixes.",
+          action: "c9", button: "Read Prefix", 
+          render: (s:string) => !s ? null : s==="c9" ? <div className="text-sky-400 animate-pulse mt-2">Reading 32-bit header...</div> : <div className="text-amber-400 mt-2">➔ Big-Endian Prefix: 0x00000008<br/>➔ Reading exactly 8 bytes.</div>
+        },
+        { 
+          title: "10. The Stop Sign", text: "Catches C/C++ style embedded strings walking backward from 0x00.",
+          action: "c10", button: "Walk Backwards", 
+          render: (s:string) => !s ? null : s==="c10" ? <div className="text-sky-400 animate-pulse mt-2">Walking backwards from 0x00...</div> : <div className="text-amber-400 mt-2">➔ Walkback string: "Hello\x00"<br/>➔ Reached Stop Sign at offset -6.</div>
+        },
+        { 
+          title: "11. The Brute Force", text: "Scrapes for any floating human text using Regex as a last resort.",
+          action: "c11", button: "Run Regex", 
+          render: (s:string) => !s ? null : s==="c11" ? <div className="text-sky-400 animate-pulse mt-2">Scanning 32KB chunk...</div> : <div className="text-emerald-400 mt-2">➔ Regex {"/[ -~\\t\\n\\r]{8,}/g"} found floating string: "my_password".</div>
+        },
+        { 
+          title: "12. The Priority Rule", text: "Prioritizes RGB-only streams over RGBA because hackers rarely use Alpha.",
+          action: "c12", button: "Check Collision", 
+          render: (s:string) => !s ? null : s==="c12" ? <div className="text-sky-400 animate-pulse mt-2">Evaluating collision...</div> : <div className="text-amber-400 mt-2">➔ Matches in RGB_MSB and RGBA_MSB.<br/>➔ Returning RGB_MSB first.</div>
+        },
+        { 
+          title: "13. The Zip File Radar", text: "Calculates 0-to-1 ratios. If skewed, it flags an anomaly (likely an encrypted ZIP file).",
+          action: "c13", button: "Check Bias", 
+          render: (s:string) => !s ? null : s==="c13" ? <div className="text-sky-400 animate-pulse mt-2">Counting 0s and 1s...</div> : <div className="text-rose-400 mt-2">➔ LSB 1s: 60%. LSB 0s: 40%.<br/>⚠️ Anomaly detected! Possible ZIP file.</div>
+        }
+      ]
+    }
+  ];
+
+  return (
+    <div>
+      <h2 className="text-3xl sm:text-4xl font-black text-slate-800 mb-4 text-center flex items-center justify-center gap-3">
+        <ShieldAlert className="text-rose-500" size={40} /> The 27 Master Defenses
+      </h2>
+      <p className="text-lg text-slate-600 mb-8 max-w-3xl mx-auto font-medium text-center">
+        Our forensic engine is powered by specific NPM packages working alongside our custom logic. Let's see exactly how each package handles edge cases!
+      </p>
+
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Sidebar */}
+        <div className="w-full md:w-1/3 space-y-3">
+          {modules.map((mod, i) => (
+            <button
+              key={i}
+              onClick={() => { setActiveModule(i); setDemoState({}); }}
+              className={`w-full text-left p-4 rounded-2xl border-4 transition-all flex items-center gap-3 shadow-sm ${activeModule === i ? 'border-sky-400 bg-sky-50 shadow-md' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+            >
+              <div className="text-2xl bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-sm border border-slate-100 flex-shrink-0">{mod.icon}</div>
+              <div className="min-w-0">
+                <p className={`font-black truncate ${activeModule === i ? 'text-sky-900' : 'text-slate-700'}`}>{mod.name}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-md ${activeModule === i ? 'bg-sky-200 text-sky-800' : 'bg-slate-200 text-slate-500'}`}>
+                    {mod.package.split('+')[0]}
+                  </span>
+                  <span className={`text-xs font-bold ${activeModule === i ? 'text-sky-600' : 'text-slate-400'}`}>{mod.count} Defenses</span>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Content Panel */}
+        <div className="w-full md:w-2/3 flex flex-col max-h-[800px]">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeModule}
+              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+              className="bg-slate-900 rounded-3xl p-6 shadow-xl border-4 border-slate-800 flex flex-col h-full"
+            >
+              {/* Header */}
+              <div className="border-b-2 border-slate-800 pb-4 mb-4 flex-shrink-0">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-2xl font-black text-white flex items-center gap-3">
+                      {modules[activeModule].icon} {modules[activeModule].name}
+                    </h3>
+                    <p className="text-slate-400 font-medium mt-1">{modules[activeModule].desc}</p>
+                  </div>
+                  <div className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg flex flex-col items-center flex-shrink-0">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Powered By</span>
+                    <span className="text-sm font-black text-emerald-400">{modules[activeModule].package}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Module Interactive Demo Box (If it exists) */}
+              {modules[activeModule].demo && (
+                <div className="bg-slate-800 rounded-2xl p-5 border-2 border-sky-500/30 mb-6 flex-shrink-0 shadow-inner">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-black text-sky-400 flex items-center gap-2"><Zap size={18}/> {modules[activeModule].demo.title}</h4>
+                    <button 
+                      onClick={() => triggerDemo(activeModule, modules[activeModule].demo.action)}
+                      className="bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow transition-colors"
+                    >
+                      {modules[activeModule].demo.button}
+                    </button>
+                  </div>
+                  <p className="text-sm text-slate-300 mb-3">{modules[activeModule].demo.desc}</p>
+                  {modules[activeModule].demo.render(demoState[activeModule])}
+                </div>
+              )}
+
+              {/* Edge Cases List */}
+              <div className="overflow-y-auto pr-2 custom-scrollbar space-y-3 pb-2 flex-grow">
+                <h4 className="font-black text-white sticky top-0 bg-slate-900 py-2 border-b border-slate-800 z-10">
+                  All {modules[activeModule].count} Edge Cases Handled:
+                </h4>
+                {modules[activeModule].cases.map((c: any, i) => (
+                  <div key={i} className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 hover:border-sky-500/50 transition-colors">
+                    <div className="flex justify-between items-start mb-1 gap-2">
+                      <h5 className="font-bold text-sky-300">{c.title}</h5>
+                      {c.action && (
+                        <button 
+                          onClick={() => triggerDemo(activeModule + "_" + i, c.action)}
+                          className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white px-3 py-1 rounded text-[10px] font-black uppercase transition-colors flex-shrink-0 whitespace-nowrap"
+                        >
+                          {c.button || "Run Demo"}
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-300 leading-relaxed font-medium">{c.text}</p>
+                    
+                    {/* Inline Case Interactive Result */}
+                    {c.action && demoState[activeModule + "_" + i] && (
+                      <div className="bg-slate-900 border border-slate-700 p-3 mt-3 rounded-xl font-mono text-xs shadow-inner">
+                        {c.render(demoState[activeModule + "_" + i])}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
