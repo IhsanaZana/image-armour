@@ -23,7 +23,7 @@ export default function Footer() {
           Researched and developed by
         </p>
         <p className="text-sm md:text-base font-medium text-white/80 tracking-wide mt-1">
-          Ihsana S Ibrahim <span className="text-indigo-400/80 font-mono text-xs ml-2 px-2 py-1 bg-indigo-500/10 rounded-full border border-indigo-500/20">24MCAR0144</span>
+          Ihsana S Ibrahim 
         </p>
       </div>
     </footer>
